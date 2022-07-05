@@ -18,21 +18,21 @@ F=E8
 green led=F7
 red led=FB  
 /*****************************************/
-
+char input=0;
 /*PIN DI DATI VERSO GLI SHIFT REGISTER**/
 const int pinData = 16;
 const int pinClk = 4;
 
 /*PIN DI ENABLE DEI DISPLAY*/
-const int display1 = 5;
+const int display1 = 19;
 const int display2 = 18;
-const int display3 = 19;
+const int display3 = 5;
 
 /*PIN DI OUT PER IL CONTROLLO DEI BOTTONI*/
-const int button1 = 22;
-const int button2 = 23;
-const int button3 = 2;
-const int button4 = 15;
+const int PRG   = 22;
+const int TMENO = 23;
+const int SEL   =  2;
+const int TPIU  = 15;
 
 int counter = 0;
 int millisec = 0; 
@@ -68,10 +68,10 @@ void setup()
   pinMode( display2, INPUT);
   pinMode( display3, INPUT);
 
-  pinMode( button1, OUTPUT);
-  pinMode( button2, OUTPUT);
-  pinMode( button3, OUTPUT);
-  pinMode( button4, OUTPUT);
+  pinMode( PRG,   OUTPUT);
+  pinMode( SEL,   OUTPUT);
+  pinMode( TPIU,  OUTPUT);
+  pinMode( TMENO, OUTPUT);
   
   attachInterrupt(pinClk, handleInterrupt, FALLING);
   clockSemaphore = xSemaphoreCreateBinary();
@@ -99,12 +99,12 @@ void loop()
 
       if (fallingperperiod == 7 ){
         delayMicroseconds(60);
-        digitalWrite(button1,HIGH);
+        //digitalWrite(button1,HIGH);
 
         dsp1 = digitalRead(display1);
         dsp2 = digitalRead(display2);
         dsp3 = digitalRead(display3);
-        digitalWrite(button1,LOW);
+        //digitalWrite(button1,LOW);
         if(dsp1 == 0 && dsp2 == 0 && dsp3 == 0){
           selected = 3;
         }else if (dsp1 == 1 && dsp2 == 0 && dsp3 == 0){
@@ -137,7 +137,46 @@ void loop()
     millisec = micros();
 
   } 
-  
+  if(Serial.available()){
+    input = Serial.read();
+    if (input=='e'){
+      digitalWrite(PRG,LOW);
+      //Serial.println("PRG");
+      delay(333);
+      
+    }else if (input=='d'){
+      digitalWrite(SEL,LOW);
+      //Serial.println("SEL");
+      delay(333);
+    }else if (input=='r'){
+      digitalWrite(TPIU,LOW);
+      //Serial.println("TPIU"); 
+      delay(333);
+    }else if (input=='f'){
+      digitalWrite(TMENO,LOW);
+      //Serial.println("PRG"); 
+      delay(333);   
+    }else if (input=='s'){
+      digitalWrite(TMENO,LOW);
+      delay(666);
+      digitalWrite(TMENO,HIGH);
+      delay(200);  
+      digitalWrite(TMENO,LOW);
+      delay(333);   
+    }
+    else if (input=='c'){
+      digitalWrite(TPIU,LOW);
+      delay(666);
+      digitalWrite(TPIU,HIGH);
+      delay(200);  
+      digitalWrite(TPIU,LOW);
+      delay(333);   
+    }
+  }
+  digitalWrite(TMENO,HIGH);
+  digitalWrite(TPIU ,HIGH);
+  digitalWrite(SEL  ,HIGH);
+  digitalWrite(PRG  ,HIGH);
 }
 
 char decodedisplay(int someNumber) {

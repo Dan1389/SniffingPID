@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<head>
+
+<title>Configuration Page</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <style>
+        body {
+            display: block;
+            margin: 0px;
+        }
+
+        h1 {
+            text-align: left ;
+        }
+
+        .container {
+            margin: 0 auto;
+        }
+        tr{
+        height: 2rem;
+        }
+        .table-label html{
+            text-align: left ;
+        }
+
+    </style>
+</head>
+
+<body>
+    <h1>Configuration page</h1>
+    <div class='container'>
+            <form action="/Configuration" method="POST">
+            <table>
+                <!-- <tr> -->
+                    <!-- <td><label class="table-label">Name: </label></td>  -->
+                    <!-- <td><input type="text" name ="bname" placeholder="Insert name"></td> -->
+                <!-- </tr> -->
+				<tr>
+                    <td><label class="table-label">SSID: </label></td> 
+                    <td><input type="text" name ="ssid" placeholder="Insert SSID"></td> 
+                </tr><tr> 
+                    <td><label class="table-label">SSID PWD: </label></td> 
+                    <td><input type="text" name ="ssidpwd" placeholder="Insert WIFI Password"></td> 
+                </tr><tr> 
+                    <td><label class="table-label">MQTT Address: </label></td> 
+                    <td><input type="text" name ="mqttaddr" placeholder="Insert MQTT Address"></td> 
+                </tr><tr> 
+                    <td><label class="table-label">MQTT Port: </label></td> 
+                    <td><input type="text" name ="mqttport" placeholder="Insert MQTT Port"></td> 
+                </tr><tr> 
+                    <td><label class="table-label">MQTT username: </label></td> 
+                    <td><input type="text" name ="mqttuser" placeholder="Insert MQTT username"></td> 
+                </tr><tr> 
+                    <td><label class="table-label">MQTT Password: </label></td> 
+                    <td><input type="text" name ="mqttpwd" placeholder="Insert MQTT Password"></td> 
+                </tr><tr> 
+                    <td><label class="table-label">NTP Server: </label></td> 
+                    <td><input type="text" name ="ntpserver" placeholder="Insert NTP Server"></td> 
+                </tr><tr> 
+                    <td><label class="table-label">DHCP: </label></td> 
+                    <td><input type="checkbox" name="dhcp" id="dhcp" onclick="options()" checked></td> 
+                </tr><tr> 
+                    <td><label class="table-label">IP: </label></td> 
+                    <td><input type="text" id="ip" name ="ip" placeholder="Insert IP" disabled></td> 
+                </tr><tr> 
+                    <td><label class="table-label">Subnet: </label></td> 
+                    <td><input type="text" id="subnet" name ="subnet" placeholder="Insert Subnet" disabled></td> 
+                </tr><tr> 
+                    <td><label class="table-label">GW: </label></td> 
+                    <td><input type="text" id="gw" name ="gw" placeholder="Insert Gateway" disabled></td> 
+                </tr><tr> 
+                    <td><label class="table-label">Full scale: </label></td> 
+                    <td>
+					<select name="accel" id="acc">
+					<option value="2">2</option>
+					<option value="4">4</option>
+					<option value="8">8</option>
+					<option value="16">16</option>
+					</select></td> 
+                </tr><tr> 
+                    <td></td>
+                    <td><input type="submit" value="Send" ></td> 
+                </tr>
+                </form>
+            <tr><td></td>
+            <td>
+            <form action="/MacAddr" method="POST">
+            <input type="submit" value="MAC Address" >
+            </form>
+            </td>
+            </tr>
+            </table>
+    </div>
+</body>
+<script>
+
+function options(){
+
+    if(document.getElementById("dhcp").checked == false){
+
+        document.getElementById("ip").disabled = false;
+        document.getElementById("ip").value = "";
+        document.getElementById("subnet").disabled = false;
+        document.getElementById("subnet").value = "";
+        document.getElementById("gw").disabled = false;
+        document.getElementById("gw").value = "";
+    
+    }else{
+        
+        document.getElementById("ip").disabled = true;
+        document.getElementById("subnet").disabled = true;
+        document.getElementById("gw").disabled = true;
+        document.getElementById("ip").value = "";
+        document.getElementById("subnet").value = "";
+        document.getElementById("gw").value = "";
+    }
+
+}
+</script>
+</html>
