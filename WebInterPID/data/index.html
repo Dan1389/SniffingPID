@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<head>
+
+<title>Main Page</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <style>
+        body {
+            display: block;
+            margin: 0px;
+        }
+
+        h1 {
+            text-align: left ;
+        }
+
+        .container {
+            margin: 0 auto;
+        }
+        tr{
+        height: 2rem;
+        }
+        .table-label html{
+            text-align: left ;
+        }
+
+        .placeholder-box {
+  position: relative;
+  display: block;
+  width: 300px;
+  min-height: 150px;
+  margin-top: 50px;
+  padding: 30px;
+  border: 1px solid #888;
+  border-radius: 10px;
+  box-sizing: border-box;
+  box-shadow: 0 0 8px 0 rgba(0,0,0,0.25);
+}
+
+.placeholder-box p {
+  text-align: center;
+  margin: 0 0 15px;
+}
+
+.placeholder-box ul {
+  margin: 0;
+}
+
+/* Button */
+
+button {
+ display: block;
+ border: solid rgba(0, 0, 0, 0.263);
+ border-width: 0 10px;
+ border-radius: 0;
+ background: rgba(203, 203, 203, 0.347);
+ color: rgb(0, 0, 0);
+ font-size: 18px;
+ float: right ;
+}
+.vl {
+  border-left: 6px solid rgb(0, 0, 0);
+  height: 30px;
+}
+
+    </style>
+</head>
+
+<body>
+    <h1>Remote control</h1>
+    <div class='container'>
+        <div class="placeholder-box">
+            <table>
+                <tr>
+                    <td><p id="row1" >Test</p></td>
+                    <td><div class="vl"></div></td>
+                    <td><button type="button" onclick="fun1()"> Prog</button></td>
+                    <td><button type="button" onclick="fun2()"> T+ </button></td>
+                </tr>
+                <tr>
+                    <td><p id="row2" >ERROR</p></td>
+                    <td><div class="vl"></div></td>
+                    <td><button type="button" onclick="fun3()">SEL </button></td>
+                    <td><button type="button" onclick="fun4()"> T- </button></td>
+                </tr>
+            
+         </table>
+          </div>
+            <form action="/Configuration" method="POST">
+            </form>
+    </div>
+</body>
+<script>
+function fun1(){
+    console.log("1");
+}function fun2(){
+    console.log("2");
+}function fun3(){
+    console.log("3");
+}function fun4(){
+    console.log("4");
+}
+
+</script>
+</html>

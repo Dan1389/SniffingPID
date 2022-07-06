@@ -41,7 +41,7 @@ bool WiFi_Init::configure_static_wifi(IPAddress local_IP,IPAddress gateway,IPAdd
     
 }
 
-void WiFi_Init::print_info_wifi(char * ssid, char * password, char * mqtt_server, char * mqtt_port, char * mqtt_usr , char * mqtt_pwd, char * ntpserver  ) {
+void WiFi_Init::print_info_wifi(char * ssid, char * password, char * mqtt_server, int mqtt_port) {
   Serial.println("-------------------------------------------");
   Serial.println("---------------NETWORK INFO----------------");
   Serial.print  ("||SSID:               ");
@@ -55,15 +55,6 @@ void WiFi_Init::print_info_wifi(char * ssid, char * password, char * mqtt_server
   Serial.println("||");
   Serial.print  ("||port:               ");
   Serial.print  (mqtt_port);
-  Serial.println("||");
-  Serial.print  ("||mqtt user:               ");
-  Serial.print  (mqtt_usr);
-  Serial.println("||");
-  Serial.print  ("||mqtt password:               ");
-  Serial.print  (mqtt_pwd);
-  Serial.println("||");
-  Serial.print  ("||ntp server:               ");
-  Serial.print  (ntpserver);
   Serial.println("||");
   Serial.println("-------------------------------------------");
 }
@@ -346,16 +337,16 @@ void WiFi_Init::sleep_wifi() {
 #endif
 }
 
-bool WiFi_Init::retrieve_NTP(char * ssid, char * password, int Retry_max , uint32_t * unix , char * ntpServer) {
+bool WiFi_Init::retrieve_NTP(char * ssid, char * password, int Retry_max , int * unix) {
   if (setup_wifi(ssid, password, Retry_max) == false) {
 
-    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer );
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
     *unix = printLocalTime();
     return false;
 
   } else {
     Serial.println("Failed to connect");
-    *unix = 0;
+    *unix = -1;
     return true;
   }
 
@@ -383,7 +374,7 @@ bool WiFi_Init::clear_credential() {
   MF.stop_memory();
 }
 
-bool WiFi_Init::set_wifi_ap (char* ssid, char* password) {
+bool WiFi_Init::set_wifi_ap (char * ssid, char * password) {
 
 #if VERBOSE_WIFI == 1
   Serial.print("Setting AP (Access Point)…");
@@ -399,15 +390,6 @@ bool WiFi_Init::set_wifi_ap (char* ssid, char* password) {
   Serial.print("AP IP address: ");
   Serial.println(IP);
   return true;
-}
-
-String WiFi_Init::get_MACid(){
-    uint8_t baseMac[6];
-    // Get MAC address for WiFi station
-    esp_read_mac(baseMac, ESP_MAC_WIFI_STA);
-    char baseMacChr[18] = {0};
-    sprintf(baseMacChr, "%02X:%02X:%02X:%02X:%02X:%02X", baseMac[0], baseMac[1], baseMac[2], baseMac[3], baseMac[4], baseMac[5]);
-    return String(baseMacChr);
 }
 
 #if!defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_EEPROM)
