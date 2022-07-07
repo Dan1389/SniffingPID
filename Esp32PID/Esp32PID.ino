@@ -29,10 +29,18 @@ const int display2 = 18;
 const int display3 = 5;
 
 /*PIN DI OUT PER IL CONTROLLO DEI BOTTONI*/
-const int PRG   = 22;
-const int TMENO = 23;
-const int SEL   =  2;
-const int TPIU  = 15;
+const int PRG    = 33;
+const int SEL    = 23;
+const int TPIU   =  2;
+const int TMENO  = 15;
+
+
+const int IN1  = 27;
+const int IN3  = 26;
+const int IN2  = 25;
+
+
+
 
 int counter = 0;
 int millisec = 0; 
@@ -42,6 +50,9 @@ int screennr = 0;
 char result[4];
 int dsp1,dsp2,dsp3;
 int selected=0;
+#define TIME    1500
+#define TIMEon  700
+#define TIMEoff 200
 
 volatile SemaphoreHandle_t clockSemaphore;
 portMUX_TYPE clockMux = portMUX_INITIALIZER_UNLOCKED;
@@ -58,7 +69,7 @@ void IRAM_ATTR handleInterrupt() {
 
 void setup() 
 {
-  Serial.begin(500000);
+  Serial.begin(115200);
   Serial.print("Hello");
   
   pinMode( pinData, INPUT);
@@ -72,6 +83,11 @@ void setup()
   pinMode( SEL,   OUTPUT);
   pinMode( TPIU,  OUTPUT);
   pinMode( TMENO, OUTPUT);
+
+  pinMode( IN1,  OUTPUT);
+  pinMode( IN3,  OUTPUT);
+  pinMode( IN2,  OUTPUT);
+
   
   attachInterrupt(pinClk, handleInterrupt, FALLING);
   clockSemaphore = xSemaphoreCreateBinary();
@@ -99,12 +115,12 @@ void loop()
 
       if (fallingperperiod == 7 ){
         delayMicroseconds(60);
-        //digitalWrite(button1,HIGH);
+        
 
         dsp1 = digitalRead(display1);
         dsp2 = digitalRead(display2);
         dsp3 = digitalRead(display3);
-        //digitalWrite(button1,LOW);
+        
         if(dsp1 == 0 && dsp2 == 0 && dsp3 == 0){
           selected = 3;
         }else if (dsp1 == 1 && dsp2 == 0 && dsp3 == 0){
@@ -115,7 +131,6 @@ void loop()
           selected = 2;
         }       
       }
-
     }else{
      
       fallingperperiod =0;
@@ -126,57 +141,57 @@ void loop()
       }
       result[selected] = decodedisplay (value);
   
-        if(selected == 3){
+      if(selected == 3){
+
+          input = Serial.read();
           Serial.printf("%c%c%c%c\n",result[0],result[1],result[2],result[3]);
-        }
+      }
       
       delayMicroseconds(10);
       dataBCD[fallingperperiod] = digitalRead(pinData);
     }
 
     millisec = micros();
-
+     
   } 
-  if(Serial.available()){
-    input = Serial.read();
-    if (input=='e'){
-      digitalWrite(PRG,LOW);
-      //Serial.println("PRG");
-      delay(333);
-      
-    }else if (input=='d'){
-      digitalWrite(SEL,LOW);
-      //Serial.println("SEL");
-      delay(333);
-    }else if (input=='r'){
-      digitalWrite(TPIU,LOW);
-      //Serial.println("TPIU"); 
-      delay(333);
-    }else if (input=='f'){
-      digitalWrite(TMENO,LOW);
-      //Serial.println("PRG"); 
-      delay(333);   
-    }else if (input=='s'){
-      digitalWrite(TMENO,LOW);
-      delay(666);
-      digitalWrite(TMENO,HIGH);
-      delay(200);  
-      digitalWrite(TMENO,LOW);
-      delay(333);   
-    }
-    else if (input=='c'){
-      digitalWrite(TPIU,LOW);
-      delay(666);
-      digitalWrite(TPIU,HIGH);
-      delay(200);  
-      digitalWrite(TPIU,LOW);
-      delay(333);   
-    }
+  //input = Serial.read();
+  if (input=='e'){
+    digitalWrite(PRG,LOW);
+    delay(TIME);
+  }else if (input=='d'){
+    digitalWrite(SEL,LOW);
+    delay(TIME);
+  }else if (input=='r'){
+    digitalWrite(TPIU,LOW);
+    delay(TIME);
+  }else if (input=='f'){
+    digitalWrite(TMENO,LOW);
+    delay(TIME);   
+  }else if (input=='t'){
+    digitalWrite(TMENO,LOW);
+    delay(TIMEon);
+    digitalWrite(TMENO,HIGH);
+    delay(TIMEoff);
+  }else if (input=='q'){
+    
+    digitalWrite(IN1,LOW);
+    delay(100);
+    digitalWrite(IN3,LOW);
+    delay(100);
+    digitalWrite(IN2,LOW);
+    delay(100);
+
+  
   }
+
   digitalWrite(TMENO,HIGH);
   digitalWrite(TPIU ,HIGH);
   digitalWrite(SEL  ,HIGH);
   digitalWrite(PRG  ,HIGH);
+  digitalWrite(IN1  ,HIGH);
+  digitalWrite(IN3  ,HIGH);
+  digitalWrite(IN2  ,HIGH);
+
 }
 
 char decodedisplay(int someNumber) {
