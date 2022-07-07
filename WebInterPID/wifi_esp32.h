@@ -23,19 +23,16 @@ struct wifi_conf
   char mqttport[20];
   char mqttuser[20];
   char mqttpwd[20];
-  char ntpserver[30];
   char ip[20];
   char subnet[20];
   char gw[20];
-  char fullscale[10];
 };
 
 class WiFi_Init
 {
   public:
-    String get_MACid();
     bool scan_wifi_network();
-    void print_info_wifi(char * ssid, char * password, char * mqtt_server, char * mqtt_port, char * mqtt_usr , char * mqtt_pwd, char * ntpserver  );
+    void print_info_wifi(char * ssid, char * password, char * mqtt_server, int mqtt_port);
     bool configure_static_wifi(IPAddress local_IP,IPAddress gateway,IPAddress subnet);
     bool initialize_credential(char * ssid, char * password, char * mqtt_server, int * mqtt_port);
     
@@ -52,17 +49,16 @@ class WiFi_Init
     bool set_wifi_ap (char* ssid,char* password);
     bool clear_credential();
     bool setup_wifi(char * ssid, char * password, int Retry_max);
-    bool retrieve_NTP(char * ssid, char * password, int Retry_max, uint32_t * unix, char * ntpServer);
-
+    bool retrieve_NTP(char * ssid, char * password, int Retry_max, int * unix);
     void sleep_wifi();
   private:
   
     int save_prm(int start_addr, uint8_t len , uint8_t * prm);
     int load_prm(int start_addr, uint8_t * prm);
-    const char* ntpServerconst = "it.pool.ntp.org";
+    
     int find_endof_wificredentials(int start_addr);
     const IPAddress apIP = IPAddress(192, 168, 4, 1);
-
+    const char* ntpServer = "it.pool.ntp.org";
     const long  gmtOffset_sec = 3600;
     const int   daylightOffset_sec = 3600;
     uint32_t printLocalTime();

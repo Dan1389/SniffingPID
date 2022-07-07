@@ -1,225 +1,159 @@
-/******************SEQUENZA BCD + led finale**************
-disp off=FF 
-disp on=00
-1=7B
-2=C1
-3=51
-4=72
-5=54
-6=44
-7=79
-8=40
-9=50
-0=48
-P=E0
-G=4c
-d=43
-F=E8
-green led=F7
-red led=FB  
-/*****************************************/
-char input=0;
-/*PIN DI DATI VERSO GLI SHIFT REGISTER**/
-const int pinData = 16;
-const int pinClk = 4;
+#include "header.h"
 
-/*PIN DI ENABLE DEI DISPLAY*/
-const int display1 = 19;
-const int display2 = 18;
-const int display3 = 5;
+void setup() {
+  Serial.begin(115200);
+  Serial.println("Press button in 5 sec to erase FLASH.");
+  pinMode(flashPin, INPUT_PULLUP);
 
-/*PIN DI OUT PER IL CONTROLLO DEI BOTTONI*/
-const int PRG   = 22;
-const int TMENO = 23;
-const int SEL   =  2;
-const int TPIU  = 15;
+  int counter = millis();
+  while ( millis() - counter < 5000) {
+    if (digitalRead(flashPin) == LOW)
+    {
+      Serial.println("Erasing...");
+      Wifi_custom.clear_credential();
+      delay(2000);
+      Serial.println("Reboot");
+      ESP.restart();
+    }
+  }
 
-int counter = 0;
-int millisec = 0; 
-int fallingperperiod = 0;
-int dataBCD[8] = {0,0,0,0,0,0,0,0};
-int screennr = 0;
-char result[4];
-int dsp1,dsp2,dsp3;
-int selected=0;
-
-volatile SemaphoreHandle_t clockSemaphore;
-portMUX_TYPE clockMux = portMUX_INITIALIZER_UNLOCKED;
-
-void IRAM_ATTR handleInterrupt() {
-
-  portENTER_CRITICAL_ISR(&clockMux);
-  counter++;
-  portEXIT_CRITICAL_ISR(&clockMux);
-
-  xSemaphoreGiveFromISR(clockSemaphore, NULL);
-
-}
-
-void setup() 
-{
-  Serial.begin(500000);
-  Serial.print("Hello");
+    // Initialize SPIFFS
+  if(!SPIFFS.begin(true)){
+    Serial.println("An Error has occurred while mounting SPIFFS");
+    return;
+  }
   
-  pinMode( pinData, INPUT);
-  pinMode( pinClk, INPUT);
-   
-  pinMode( display1, INPUT);
-  pinMode( display2, INPUT);
-  pinMode( display3, INPUT);
-
-  pinMode( PRG,   OUTPUT);
-  pinMode( SEL,   OUTPUT);
-  pinMode( TPIU,  OUTPUT);
-  pinMode( TMENO, OUTPUT);
   
-  attachInterrupt(pinClk, handleInterrupt, FALLING);
-  clockSemaphore = xSemaphoreCreateBinary();
-
-  millisec = micros();
-}
-
-void loop() 
-{
-
-
-  if (xSemaphoreTake(clockSemaphore, 0) == pdTRUE) {
-    int millycarlucci = micros();
+  if(Wifi_custom.check_credential(&wifi_settings) == false){
+  /***********************WIFI SOFT AP FOR CONF*********************/
+  Wifi_custom.set_wifi_ap("Configure_Device", "12345678");
  
-    uint32_t isrCount = 0;
-    portENTER_CRITICAL(&clockMux);
-    isrCount = counter;
-    portEXIT_CRITICAL(&clockMux);
+  server.on("/", HTTP_GET, [](){
+    if(!handleFileRead("/config.html")) server.send(404, "text/plain", "FileNotFound");
+  });
+  server.on("/Configuration", handle_OnReceiveParam);
+  server.begin();
+  while(1)  server.handleClient();
+  /****************************************************************/
+  }else{
+  /****************WIFI INIT CONNECTION TO NETWORK****************/
+    //Wifi_custom.sleep_wifi();
+    delay(1000);   
     
-    if(millycarlucci-millisec < 200){
-      
-      fallingperperiod++;
-      delayMicroseconds(10);
-      dataBCD[fallingperperiod] = digitalRead(pinData);
-
-      if (fallingperperiod == 7 ){
-        delayMicroseconds(60);
-        //digitalWrite(button1,HIGH);
-
-        dsp1 = digitalRead(display1);
-        dsp2 = digitalRead(display2);
-        dsp3 = digitalRead(display3);
-        //digitalWrite(button1,LOW);
-        if(dsp1 == 0 && dsp2 == 0 && dsp3 == 0){
-          selected = 3;
-        }else if (dsp1 == 1 && dsp2 == 0 && dsp3 == 0){
-          selected = 0;
-        }else if (dsp1 == 0 && dsp2 == 1 && dsp3 == 0){
-          selected = 1;
-        }else if (dsp1 == 0 && dsp2 == 0 && dsp3 == 1){
-          selected = 2;
-        }       
-      }
-
-    }else{
-     
-      fallingperperiod =0;
-      int value = 0;
-      for(byte i=0; i<8; i++){
-         value *= 2;
-         value += dataBCD[i] ;
-      }
-      result[selected] = decodedisplay (value);
-  
-        if(selected == 3){
-          Serial.printf("%c%c%c%c\n",result[0],result[1],result[2],result[3]);
-        }
-      
-      delayMicroseconds(10);
-      dataBCD[fallingperperiod] = digitalRead(pinData);
+    if( strlen(wifi_settings.ip) != 0 && strlen(wifi_settings.subnet) !=0 && strlen(wifi_settings.gw) !=0 ){
+      Wifi_custom.conf_static_settings(wifi_settings.ip,wifi_settings.gw,wifi_settings.subnet);
     }
 
-    millisec = micros();
+    connection_state = Wifi_custom.setup_wifi(wifi_settings.ssid,wifi_settings.ssidpwd,retry);
 
-  } 
-  if(Serial.available()){
-    input = Serial.read();
-    if (input=='e'){
-      digitalWrite(PRG,LOW);
-      //Serial.println("PRG");
-      delay(333);
-      
-    }else if (input=='d'){
-      digitalWrite(SEL,LOW);
-      //Serial.println("SEL");
-      delay(333);
-    }else if (input=='r'){
-      digitalWrite(TPIU,LOW);
-      //Serial.println("TPIU"); 
-      delay(333);
-    }else if (input=='f'){
-      digitalWrite(TMENO,LOW);
-      //Serial.println("PRG"); 
-      delay(333);   
-    }else if (input=='s'){
-      digitalWrite(TMENO,LOW);
-      delay(666);
-      digitalWrite(TMENO,HIGH);
-      delay(200);  
-      digitalWrite(TMENO,LOW);
-      delay(333);   
+    if (connection_state == true ) {
+    while (connection_state == true){
+      Serial.println("Fail!");
+      connection_state = Wifi_custom.setup_wifi(wifi_settings.ssid,wifi_settings.ssidpwd,retry);
     }
-    else if (input=='c'){
-      digitalWrite(TPIU,LOW);
-      delay(666);
-      digitalWrite(TPIU,HIGH);
-      delay(200);  
-      digitalWrite(TPIU,LOW);
-      delay(333);   
+    } else {
+    Serial.print("Connect to: ");
+    Serial.println(wifi_settings.ssid);
+    server.on("/", HTTP_GET, [](){
+    if(!handleFileRead("/index.html")) server.send(404, "text/plain", "FileNotFound");
+    });
+    server.on("/tup", handle_tup);
+    server.on("/tminus", handle_tminus);
+    server.on("/sel", handle_sel);
+    server.on("/prog", handle_prog);
+    server.begin();
     }
-  }
-  digitalWrite(TMENO,HIGH);
-  digitalWrite(TPIU ,HIGH);
-  digitalWrite(SEL  ,HIGH);
-  digitalWrite(PRG  ,HIGH);
+  }  
+  /****************************************************************/
+}
+void loop() {
+   server.handleClient();
+  /*************DO WHAT YOU WANT*******************************/
 }
 
-char decodedisplay(int someNumber) {
-  switch (someNumber) {
-    case 0x7B:
-      return '1';
-    case 0xC1:
-      return '2';
-    case 0x51:
-      return '3';
-    case 0x72:
-      return '4';
-    case 0x054:
-      return '5';
-    case 0x44:
-      return '6';
-    case 0x79:
-      return '7';
-    case 0x40:
-      return '8';
-    case 0x50:
-      return '9';
-    case 0x48:
-      return '0';
-    case 0xE0:
-      return 'P'; 
-    case 0x4C:
-      return 'G'; 
-    case 0x43:
-      return 'd'; 
-    case 0xE4:
-      return 'F'; 
-    case 0xC8:
-      return 'E'; 
-    case 0xF7:
-      return 'g'; 
-    case 0xFB:
-      return 'r'; 
-    case 0xFF:
-      return ' ';
-    case 0x00:
-      return 'A';
-    default:
-      return 'e';
+void handle_tup(){
+    server.send(200, "text/html");
+}
+void handle_tminus(){
+    server.send(200, "text/html");
+}
+void handle_sel(){
+    server.send(200, "text/html");
+}
+void handle_prog(){
+    server.send(200, "text/html");
+}
+
+void handle_OnReceiveParam(){
+
+#if DEBUG == 1
+  Serial.println(server.arg("bname"));
+  Serial.println(server.arg("ssid"));
+  Serial.println(server.arg("ssidpwd"));
+  Serial.println(server.arg("mqttaddr"));
+  Serial.println(server.arg("mqttport"));
+  Serial.println(server.arg("mqttuser"));
+  Serial.println(server.arg("mqttpwd"));
+  //Serial.println(server.arg("dhcp"));
+  Serial.println(server.arg("ip"));
+  Serial.println(server.arg("subnet"));
+  Serial.println(server.arg("gw")); 
+#endif
+  
+  server.arg("bname").toCharArray(wifi_settings.bname,server.arg("bname").length()+1  );  
+  server.arg("ssid").toCharArray(wifi_settings.ssid,server.arg("ssid").length()+1    );   
+  server.arg("ssidpwd").toCharArray(wifi_settings.ssidpwd,server.arg("ssidpwd").length() +1   );
+  server.arg("mqttaddr").toCharArray(wifi_settings.mqttaddr,server.arg("mqttaddr").length()+1  ); 
+  server.arg("mqttport").toCharArray(wifi_settings.mqttport,server.arg("mqttport").length()+1  );  
+  server.arg("mqttuser").toCharArray(wifi_settings.mqttuser,server.arg("mqttuser").length()+1  );    
+  server.arg("mqttpwd").toCharArray(wifi_settings.mqttpwd,server.arg("mqttpwd").length() +1   );  
+  server.arg("ip").toCharArray(wifi_settings.ip,server.arg("ip").length()+1       );
+  server.arg("subnet").toCharArray(wifi_settings.subnet,server.arg("subnet").length()+1     );
+  server.arg("gw").toCharArray(wifi_settings.gw,server.arg("gw").length()+1       );
+  
+  Wifi_custom.initialize_credential_fromWebpage(&wifi_settings);
+  server.send(200, "text/html");
+  
+}
+void handle_Conf(String myFile) {
+    
+    if (SPIFFS.exists(myFile)) {
+      Serial.println(F("myFile founded on   SPIFFS"));
+      
+      File file = SPIFFS.open(myFile, "r");    
+      
+      size_t sent = server.streamFile(file, "text/css");
+      file.close();
+    }
+}
+String getContentType(String filename){
+  if(server.hasArg("download")) return "application/octet-stream";
+  else if(filename.endsWith(".htm")) return "text/html";
+  else if(filename.endsWith(".html")) return "text/html";
+  else if(filename.endsWith(".css")) return "text/css";
+  else if(filename.endsWith(".js")) return "application/javascript";
+  else if(filename.endsWith(".png")) return "image/png";
+  else if(filename.endsWith(".gif")) return "image/gif";
+  else if(filename.endsWith(".jpg")) return "image/jpeg";
+  else if(filename.endsWith(".ico")) return "image/x-icon";
+  else if(filename.endsWith(".xml")) return "text/xml";
+  else if(filename.endsWith(".pdf")) return "application/x-pdf";
+  else if(filename.endsWith(".zip")) return "application/x-zip";
+  else if(filename.endsWith(".gz")) return "application/x-gzip";
+  return "text/plain";
+}
+bool handleFileRead(String path){
+  Serial.println("handleFileRead: " + path);
+  if(path.endsWith("/")) path += "index.htm";
+  String contentType = getContentType(path);
+  String pathWithGz = path + ".gz";
+  if(SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)){
+    if(SPIFFS.exists(pathWithGz))
+      path += ".gz";
+    File file = SPIFFS.open(path, "r");
+    size_t sent = server.streamFile(file, contentType);
+    file.close();
+    return true;
   }
+  return false;
 }
