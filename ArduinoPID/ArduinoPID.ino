@@ -20,26 +20,23 @@ red led=FB
 /*****************************************/
 char input=0;
 /*PIN DI DATI VERSO GLI SHIFT REGISTER**/
-const int pinData = 16;
-const int pinClk = 4;
+const int pinData = 2;
+const int pinClk = 3;
 
 /*PIN DI ENABLE DEI DISPLAY*/
-const int display1 = 19;
-const int display2 = 18;
-const int display3 = 5;
+const int display1 = 4;
+const int display2 = 5;
+const int display3 = 6;
 
 /*PIN DI OUT PER IL CONTROLLO DEI BOTTONI*/
-const int TPIU  = 33;
-const int PRG   = 23;
-const int SEL   =  2;
-const int TMENO = 15;
+const int TPIU  = 7;
+const int PRG   = 8;
+const int SEL   = 9;
+const int TMENO = 10;
 
-
-const int IN1  = 27;
-const int IN3  = 26;
-const int IN2  = 25;
-
-
+const int IN1  = 11;
+const int IN3  = 12;
+const int IN2  = 13;
 
 
 int counter = 0;
@@ -53,17 +50,11 @@ int selected=0;
 #define TIME    1500
 #define TIMEon  700
 #define TIMEoff 200
+bool flag= false;
 
-volatile SemaphoreHandle_t clockSemaphore;
-portMUX_TYPE clockMux = portMUX_INITIALIZER_UNLOCKED;
+void handleInterrupt() {
 
-void IRAM_ATTR handleInterrupt() {
-
-  portENTER_CRITICAL_ISR(&clockMux);
-  counter++;
-  portEXIT_CRITICAL_ISR(&clockMux);
-
-  xSemaphoreGiveFromISR(clockSemaphore, NULL);
+ flag = true;
 
 }
 
@@ -93,8 +84,7 @@ void setup()
   digitalWrite(IN2  ,HIGH);
 
   
-  attachInterrupt(pinClk, handleInterrupt, FALLING);
-  clockSemaphore = xSemaphoreCreateBinary();
+  attachInterrupt(digitalPinToInterrupt(pinClk), handleInterrupt, FALLING);
 
   millisec = micros();
 }
@@ -103,13 +93,8 @@ void loop()
 {
 
 
-  if (xSemaphoreTake(clockSemaphore, 0) == pdTRUE) {
+  if (flag) {
     int millycarlucci = micros();
- 
-    uint32_t isrCount = 0;
-    portENTER_CRITICAL(&clockMux);
-    isrCount = counter;
-    portEXIT_CRITICAL(&clockMux);
     
     if(millycarlucci-millisec < 200){
       
@@ -148,7 +133,9 @@ void loop()
       if(selected == 3){
 
           input = Serial.read();
-          Serial.printf("%c%c%c%c\n",result[0],result[1],result[2],result[3]);
+          char buff[6];
+          sprintf(buff,"%c%c%c%c\n",result[0],result[1],result[2],result[3]);
+          Serial.println(buff);
       }
       
       delayMicroseconds(10);
@@ -156,6 +143,7 @@ void loop()
     }
 
     millisec = micros();
+    flag = false;
      
   } 
   //input = Serial.read();
@@ -194,14 +182,12 @@ void loop()
   }else if (input=='x'){
     digitalWrite(IN2,HIGH);
     delay(100);
-  }else if (input=='k'){
-    ESP.restart();
-    delay(100);
   }
   digitalWrite(TMENO,HIGH);
   digitalWrite(TPIU ,HIGH);
   digitalWrite(SEL  ,HIGH);
   digitalWrite(PRG  ,HIGH);
+  
 
 }
 
