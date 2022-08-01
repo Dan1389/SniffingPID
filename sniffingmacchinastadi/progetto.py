@@ -5,7 +5,7 @@ from controlc import install_handler
 from readConfiguration import ConfigSectionMap  
 
 SERNAME = "/dev/ttyUSB0"
-pathTemperature = "/home/raspberry/Desktop/RaspiFy/Enviroment/serviceAux.txt"
+pathTemperature = "/home/pi/Desktop/RaspiFy/Enviroment/serviceAux.txt"
 
 
 if __name__ == '__main__':
@@ -16,6 +16,12 @@ if __name__ == '__main__':
             \t\t| r: T + \t\t\t|
             \t\t| e: T - \t\t\t|
             \t\t| f: On/Off \t\t\t|
+            \t\t| q: Fan On \t\t\t|
+            \t\t| a: Pompa 1 On \t\t\t|
+            \t\t| z: Pompa 2 On \t\t\t|
+            \t\t| w: Fan Off \t\t\t|
+            \t\t| s: Pompa1 Off \t\t\t|
+            \t\t| x: Pompa2 Off \t\t\t|
             \t\t| d: Caldo/Freddo \t\t|""")
 
       install_handler()

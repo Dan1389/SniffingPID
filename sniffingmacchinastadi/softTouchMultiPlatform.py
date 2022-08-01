@@ -74,6 +74,41 @@ class ButtonThreadrPi(threading.Thread):
                     printdbg(self.trigger)
                     if self.qs != None:
                         self.qs.put( self.trigger )
+                elif c=='k':
+                    self.trigger = 'RESET_BOARD'
+                    printdbg(self.trigger)
+                    if self.qs != None:
+                        self.qs.put( self.trigger )
+                elif c=='q':
+                    self.trigger = 'FAN_ON'
+                    printdbg(self.trigger)
+                    if self.qs != None:
+                        self.qs.put( self.trigger )
+                elif c=='a':
+                    self.trigger = 'PUMP_ON'
+                    printdbg(self.trigger)
+                    if self.qs != None:
+                        self.qs.put( self.trigger )
+                elif c=='z':
+                    self.trigger = 'PUMP2_ON'
+                    printdbg(self.trigger)
+                    if self.qs != None:
+                        self.qs.put( self.trigger )
+                elif c=='w':
+                    self.trigger = 'FAN_OFF'
+                    printdbg(self.trigger)
+                    if self.qs != None:
+                        self.qs.put( self.trigger )
+                elif c=='s':
+                    self.trigger = 'PUMP_OFF'
+                    printdbg(self.trigger)
+                    if self.qs != None:
+                        self.qs.put( self.trigger )
+                elif c=='x':
+                    self.trigger = 'PUMP2_OFF'
+                    printdbg(self.trigger)
+                    if self.qs != None:
+                        self.qs.put( self.trigger )
             time.sleep(0.5)
                     
 

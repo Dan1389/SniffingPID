@@ -5,10 +5,14 @@ import threading
 from controlc import install_handler
 import serial
 from datetime import datetime
-
-WAIT_RESPONSE = 1
+WAIT_RESPONSE=1
+WAIT_MANUAL = 1
 WAIT = 1
 DECISION_TRG = "DECISION_TIME"
+
+HEAT_TIME_START= 17-1
+HEAT_TIME_STOP=  8+1
+COLDFAN_TIME_START= 10
 
 def isnumber(x):
     if(x >= '0' and x <= '9'):
@@ -16,14 +20,14 @@ def isnumber(x):
     else:
         return False
 
-def commandos(cmd,ser):
+def commandos(cmd,ser,wait = WAIT_RESPONSE):
 
     TX_ongoing=True
     disp=''
     try:
         ser.write(cmd.encode())
         #print("sent "+cmd)
-        time.sleep(WAIT_RESPONSE)
+        time.sleep(wait)
         while TX_ongoing:
             if (ser.inWaiting() > 0):
                 data_str = ser.read(ser.inWaiting()).decode()
@@ -97,11 +101,17 @@ class FichiMachine(Machine,threading.Thread):
         self.sername = serial
         self.ser = ""
         ####NON ME LI RICORDO###
-        self.RSTCMD = ""
-        self.TUPCMD = ""
-        self.TDOCMD = ""
-        self.SELCMD = ""
-        self.PRGCMD = ""
+        self.RSTCMD = "k"
+        self.TUPCMD = "r"
+        self.TDOCMD = "f"
+        self.SELCMD = "d"
+        self.PRGCMD = "e"
+        self.FAN_ON ='q'
+        self.FAN_OFF ='w'
+        self.PUMP_ON ='a'
+        self.PUMP_OFF ='s'
+        self.PUMP2_ON ='z'
+        self.PUMP2_OFF ='x'
         self.termoconv = 0
         self.pompa1 = 0
         self.pompa2 = 0
@@ -129,11 +139,20 @@ class FichiMachine(Machine,threading.Thread):
             State(name='Tdownfun',  on_enter=['Tdownfun']),
             State(name='Prgfun',    on_enter=['Prgfun'  ]),
             State(name='Selfun',    on_enter=['Selfun'  ]),
+            
+            State(name='FanONfun',     on_enter=['FanONfun'  ]),
+            State(name='FanOFFfun',    on_enter=['FanOFFfun'  ]),
+            State(name='PumpONfun',    on_enter=['PumpONfun'  ]),
+            State(name='PumpOFFfun',   on_enter=['PumpOFFfun'  ]),
+            State(name='Pump2ONfun',   on_enter=['Pump2ONfun'  ]),
+            State(name='Pump2OFFfun',  on_enter=['Pump2OFFfun'  ]),
+            
             State(name='Error',     on_enter=['Error'   ]),
         ]
 
         transitions = [
-        
+            
+            #Automatica
             # { 'trigger': 'LONG_SWITCH'  , 'source': 'Idle'        , 'dest': 'initWork'   }, 
             { 'trigger': 'START'        , 'source': 'Start'       , 'dest': 'Init'       }, 
             { 'trigger': 'DECISION_TIME', 'source': 'Idle'        , 'dest': 'Decision1'   }, 
@@ -141,12 +160,18 @@ class FichiMachine(Machine,threading.Thread):
             { 'trigger': 'POWERON'      , 'source': 'Idle'        , 'dest': 'PowerOn'    }, 
             { 'trigger': 'READ_FILE'    , 'source': '*'           , 'dest': 'Idle'   },
 
+            #Manuale
             { 'trigger': 'RESET_BOARD'  , 'source': '*'           , 'dest': 'Rstboard'   },
             { 'trigger': 'TEMP_UP'      , 'source': '*'           , 'dest': 'Tupfun'     },
             { 'trigger': 'TEMP_DOWN'    , 'source': '*'           , 'dest': 'Tdownfun'   },
             { 'trigger': 'PRG_BUTTON'   , 'source': '*'           , 'dest': 'Prgfun'     },
             { 'trigger': 'SEL_BUTTON'   , 'source': '*'           , 'dest': 'Selfun'     },
-            
+            { 'trigger': 'FAN_ON'       , 'source': '*'           , 'dest': 'FanONfun'     },
+            { 'trigger': 'FAN_OFF'      , 'source': '*'           , 'dest': 'FanOFFfun'     },
+            { 'trigger': 'PUMP_ON'      , 'source': '*'           , 'dest': 'PumpONfun'     },
+            { 'trigger': 'PUMP_OFF'     , 'source': '*'           , 'dest': 'PumpOFFfun'     },
+            { 'trigger': 'PUMP2_ON'     , 'source': '*'           , 'dest': 'Pump2ONfun'     },
+            { 'trigger': 'PUMP2_OFF'    , 'source': '*'           , 'dest': 'Pump2OFFfun'     },
             { 'trigger': 'ERROR'        , 'source': '*'           , 'dest': 'Error' },
             
         ]
@@ -154,24 +179,25 @@ class FichiMachine(Machine,threading.Thread):
         Machine(self, states=states, transitions=transitions, ignore_invalid_triggers=True, initial='Start')
 
     def Idle(self) : 
+        try:
+            f = open(self.pathname , "r")
+            string = f.readline()
 
-        f = open(self.pathname , "r")
-        string = f.readline()
-
-        self.utime = int(string.split(";")[0])
-        self.temperature  = float(string.split(";")[1])
-        self.hum = float(string.split(";")[2])
-        date=datetime.utcfromtimestamp(self.utime).strftime('%Y-%m-%d %H:%M:%S')
-        hours=date.split(" ")[1]
-        self.hour=int(hours.split(":")[0])
-        f.close()
-        print(date)
-        print(self.temperature,self.hum,self.display,self.termoconv)
-        
-        if self.mode == 'a':
-            self.display=commandos("m",self.ser)
-            print(self.display)
-    
+            self.utime = int(string.split(";")[0])
+            self.temperature  = float(string.split(";")[1])
+            self.hum = float(string.split(";")[2])
+            date=datetime.utcfromtimestamp(self.utime).strftime('%Y-%m-%d %H:%M:%S')
+            hours=date.split(" ")[1]
+            self.hour=int(hours.split(":")[0])+2
+            f.close()
+            print(date)
+            print(self.temperature,self.hum,self.display,self.termoconv)
+            
+            if self.mode == 'a':
+                self.display=commandos("m",self.ser)
+                print(self.display)
+        except:
+            print("errore apertura file")
 
     ##############AUTOMATICO##################
        
@@ -199,11 +225,12 @@ class FichiMachine(Machine,threading.Thread):
             self.to_Error()
             print("Error")
 
+
     def Decision1(self) : 
 
         if self.display[3]=='g':
         
-            if (0<=self.hour<7) or (self.hour>17) :
+            if (0<=self.hour<HEAT_TIME_STOP) or (self.hour>HEAT_TIME_START) :
 
                 print("metti in heat, accendi fan heat")
                 try:
@@ -220,14 +247,14 @@ class FichiMachine(Machine,threading.Thread):
                     print("ERRORE IN SWITCH STATE HEAT")
                     self.to_Error()
                     
-            elif (7<=self.hour<9) and self.termoconv :
+            elif (HEAT_TIME_STOP<=self.hour<COLDFAN_TIME_START) and self.termoconv :
             
                 print("spegni fan cold")
                 self.ser.write("w".encode())
                 self.termoconv=0
                 time.sleep(WAIT)
 
-            elif (9<=self.hour<=17) and (not self.termoconv):
+            elif (COLDFAN_TIME_START<=self.hour<=HEAT_TIME_START) and (not self.termoconv):
 
                 print("accendi fan cold")
                 self.ser.write("q".encode())
@@ -236,14 +263,14 @@ class FichiMachine(Machine,threading.Thread):
                 
         elif self.display[3]=='r':
         
-            if ((0<=self.hour<7) or (self.hour>17)) and (not self.termoconv) :
+            if ((0<=self.hour<HEAT_TIME_STOP) or (self.hour>HEAT_TIME_START)) and (not self.termoconv) :
 
                 print("accendi fan heat")
                 self.ser.write("q".encode())
                 self.termoconv=1
                 time.sleep(WAIT)
         
-            elif (7<=self.hour<9) :#and  fan :
+            elif (HEAT_TIME_STOP<=self.hour<COLDFAN_TIME_START) :#and  fan :
                 print("metti in cold, spegni fan cold ")
                 try:
                     while self.display[3]=='r':
@@ -258,7 +285,7 @@ class FichiMachine(Machine,threading.Thread):
                     print("ERRORE IN SWITCH STATE COLD1")
                     self.to_Error()
 
-            elif (9<=self.hour<=17) :#and (not fan):
+            elif (COLDFAN_TIME_START<=self.hour<=HEAT_TIME_START) :#and (not fan):
                 print("metti in cold, accendi fan cold")
                 try:
                     while self.display[3]=='r':
@@ -279,52 +306,119 @@ class FichiMachine(Machine,threading.Thread):
     ############MANUALE###########################
     def Rstboard(self) : 
         try:
-            self.ser.write(self.RSTCMD.encode())
-            print("Inviato")
+            #self.ser.write(self.RSTCMD.encode())
+#             self.display = commandos(self.RSTCMD,self.ser,WAIT_MANUAL)
+#             print(self.display)
+            print("Inviato RST")
         except:
             print("Serial Error")
        
     def Tupfun(self) : 
         try:
-            self.ser.write(self.TUPCMD.encode())
-            print("Inviato")
+            #self.ser.write(self.TUPCMD.encode())
+            self.display = commandos(self.TUPCMD,self.ser,WAIT_MANUAL)
+            print(self.display)
+            print("Inviato TUP")
         except:
             print("Serial Error")
        
     def Tdownfun(self) : 
         try:
-            self.ser.write(self.TDOCMD.encode())
-            print("Inviato")
+            #self.ser.write(self.TDOCMD.encode())
+            self.display = commandos(self.TDOCMD,self.ser,WAIT_MANUAL)
+            print(self.display)
+            print("Inviato TDOWN")
         except:
             print("Serial Error")
        
     def Prgfun(self) : 
         try:
-            self.ser.write(self.PRGCMD.encode())
-            print("Inviato")
+            #self.ser.write(self.PRGCMD.encode())
+            self.display = commandos(self.PRGCMD,self.ser,WAIT_MANUAL)
+            print(self.display)
+            print("Inviato ON/OFF")
         except:
             print("Serial Error")
               
     def Selfun(self) : 
         try:
-            self.ser.write(self.SELCMD.encode())
-            print("Inviato")
+            #self.ser.write(self.SELCMD.encode())
+            self.display = commandos(self.SELCMD,self.ser,WAIT_MANUAL)
+            print(self.display)
+            print("Inviato SEL")
         except:
             print("Serial Error")
+            
+    def FanONfun(self) : 
+        try:
+            #self.ser.write(self.SELCMD.encode())
+            self.ser.write("q".encode())
+            time.sleep(WAIT)
+            print(self.display)
+            print("Inviato FUN ON")
+        except:
+            print("Serial Error")
+            
+    def FanOFFfun(self) : 
+        try:
+            #self.ser.write(self.SELCMD.encode())
+            self.ser.write("w".encode())
+            time.sleep(WAIT)
+            print(self.display)
+            print("Inviato FUN OFF")
+        except:
+            print("Serial Error")
+    def PumpONfun(self) : 
+        try:
+            #self.ser.write(self.SELCMD.encode())
+            self.ser.write("a".encode())
+            time.sleep(WAIT)
+            print(self.display)
+            print("Inviato PUMP ON")
+        except:
+            print("Serial Error")
+    def PumpOFFfun(self) : 
+        try:
+            #self.ser.write(self.SELCMD.encode())
+            self.ser.write("s".encode())
+            time.sleep(WAIT)
+            print(self.display)
+            print("Inviato PUMP OFF")
+        except:
+            print("Serial Error")
+    def Pump2ONfun(self) : 
+        try:
+            #self.ser.write(self.SELCMD.encode())
+            self.ser.write("z".encode())
+            time.sleep(WAIT)
+            print(self.display)
+            print("Inviato PUMP2 ON")
+        except:
+            print("Serial Error")
+    def Pump2OFFfun(self) : 
+        try:
+            #self.ser.write(self.SELCMD.encode())
+            self.ser.write("x".encode())
+            time.sleep(WAIT)
+            print(self.display)
+            print("Inviato PUMP2 OFF")
+        except:
+            print("Serial Error")  
 
     #####ERRORE#####
     def Error(self) : 
         try:
-            ser.write("q".encode())
+            self.ser.write("q".encode())
             time.sleep(WAIT)
-            ser.write("a".encode())
+            self.ser.write("a".encode())
             time.sleep(WAIT)
-            ser.write("z".encode())
+            self.ser.write("z".encode())
             time.sleep(WAIT)
             self.pompa1     = 1
             self.pompa2     = 1
             self.termoconv  = 1
             print("Errore Pompa di calore")
+            self.to_Idle()
         except:
             print("Serial Error")
             print("Riavvio in: " + str(5))
@@ -337,6 +431,7 @@ class FichiMachine(Machine,threading.Thread):
             time.sleep(1)
             print("Riavvio in: " + str(1))
             time.sleep(1)
+            ## Riavvio
             self.to_Init()
 
     def run(self):
@@ -356,12 +451,22 @@ class FichiMachine(Machine,threading.Thread):
                         self.trigger("POWERON")
                     elif len(self.display)>3: 
                         self.trigger(DECISION_TRG)
+                try:
+                    item = self.qs["toFSM"].get(block=False)
+                    self.trigger(item)  
+                    self.qs["toFSM"].task_done()
+                except:
+                    print("coda vuota")
+                time.sleep(4)
             else:
-                item = self.qs["toFSM"].get()
-                self.trigger(item)  
-                self.qs["toFSM"].task_done()
+                try:
+                    item = self.qs["toFSM"].get(block=False)
+                    self.trigger(item)  
+                    self.qs["toFSM"].task_done()
+                except:
+                    print("coda vuota")
         
-            time.sleep(5)
+            time.sleep(1)
             if self.state != "Error":
                 self.trigger("READ_FILE")
                 
