@@ -93,14 +93,14 @@ def commandos(cmd,ser,wait = WAIT_RESPONSE):
 
 
 class FichiMachine(Machine,threading.Thread):
-    def __init__(self, qs , path, serial):
+    def __init__(self, qs , path , pathenv , serial, mode = ""):
         threading.Thread.__init__(self)
         self.qs = qs
         self.terminate = 0
         self.pathname = path
+        self.pathnameenv = pathenv
         self.sername = serial
         self.ser = ""
-        ####NON ME LI RICORDO###
         self.RSTCMD = "k"
         self.TUPCMD = "r"
         self.TDOCMD = "f"
@@ -116,12 +116,17 @@ class FichiMachine(Machine,threading.Thread):
         self.pompa1 = 0
         self.pompa2 = 0
         self.display = ""
+        #SENSORE AMBIENTE INTERNO
         self.utime = 0
         self.temperature = 0
         self.hum = 0
         self.hour = 0 
+        #SENSORE AMBIENTE ESTERNO
+        self.utimeenv = 0
+        self.temperatureenv = 0
+        self.lux = 0
         
-        self.mode = ""
+        self.mode = mode
         
         while self.mode != 'a' and self.mode != 'm': 
             self.mode = input("--> inserisci modalita' [a/m]\n")
@@ -190,14 +195,36 @@ class FichiMachine(Machine,threading.Thread):
             hours=date.split(" ")[1]
             self.hour=int(hours.split(":")[0])+2
             f.close()
+            print("SENSORE INTERNO")
+            print("T,Hum,Display,Fan")
+            print("----------------")
             print(date)
             print(self.temperature,self.hum,self.display,self.termoconv)
-            
+            print("----------------")
             if self.mode == 'a':
                 self.display=commandos("m",self.ser)
-                print(self.display)
+                print("Display:",self.display)
         except:
-            print("errore apertura file")
+            print("errore apertura file ambientale BME")
+
+        try:
+            f = open(self.pathnameenv , "r")
+            string = f.readline()
+
+            self.utimeenv = int(string.split(";")[0])
+            self.temperatureenv  = float(string.split(";")[1])
+            self.lux = float(string.split(";")[2])
+            dateenv=datetime.utcfromtimestamp(self.utime).strftime('%Y-%m-%d %H:%M:%S')
+            f.close()
+            print("SENSORE ESTERNO")
+            print("T,Lux")
+            print("----------------")
+            print(dateenv)
+            print(self.temperatureenv,self.lux)
+            print("----------------")
+            
+        except:
+            print("errore apertura file ambientale LUX/T")
 
     ##############AUTOMATICO##################
        

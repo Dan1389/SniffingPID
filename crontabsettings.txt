@@ -1,0 +1,3 @@
+@reboot /usr/bin/screen -S fichi -d -m bash /home/raspberry/Desktop/RaspiFy/starter.sh
+@reboot /usr/bin/screen -S enviro -d -m bash /home/raspberry/Desktop/PythonScript/startenvi.sh
+@reboot /usr/bin/screen -S macchina -d -m bash /home/raspberry/Desktop/PythonScript/sniffingmacchinastadi/start.sh

@@ -1,8 +1,3 @@
 #!/bin/bash
 
-cp /opt/cps/configs/config.ini /opt/cps/consensus/config.ini
-
-cd /opt/cps/consensus
-
-source env/bin/activate
-python progetto.py 
+sleep 60 && cd /home/raspberry/Desktop/PythonScript/sniffingmacchinastadi && source ../env/bin/activate && python progettoAuto.py && deactivate

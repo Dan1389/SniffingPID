@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
       qs = {'toFSM'  : queue.Queue() }
 
-      workMachine = FichiMachine( qs,pathTemperature,pathEnviro,SERNAME )
+      workMachine = FichiMachine( qs,pathTemperature, pathEnviro ,SERNAME , mode = "a")
       thdButton = ButtonThreadrPi("Button", qs, workMachine)
       thdButton.start() 
 
