@@ -56,7 +56,7 @@ class Toplevel1:
         self.Entry1.configure(selectbackground="blue")
         self.Entry1.configure(selectforeground="white")
         #self.Entry1.configure(text='''192.168.10.101''')
-        self.Entry1.insert(END, '192.168.10.101')
+        self.Entry1.insert(END, '192.168.1.142')
 
         self.Label1 = tk.Label(self.Labelframe1)
         self.Label1.place(relx=0.081, rely=0.072, height=21, width=164

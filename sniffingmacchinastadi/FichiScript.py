@@ -120,6 +120,8 @@ class FichiMachine(Machine,threading.Thread):
         self.display = ""
         self.rstPIN= 11
         self.rstPINState= False
+        # IN CASO DI DECISION2 IMPOSTA LA MODALITà CALDO FREDDO
+        self.mode = ""
         #SENSORE AMBIENTE INTERNO
         self.utime = 0
         self.temperature = 0
@@ -249,7 +251,7 @@ class FichiMachine(Machine,threading.Thread):
                 self.display = commandos("e",self.ser)
                 time.sleep(WAIT)
                     
-                ser.write("q".encode())
+                self.ser.write("q".encode())
                 self.termoconv=1
                 time.sleep(WAIT)
 
@@ -331,9 +333,81 @@ class FichiMachine(Machine,threading.Thread):
                 except:                    
                     print("ERRORE IN SWITCH STATE COLD2")
                     self.to_Error()
-
+#TODO
     def Decision2(self) : 
-            pass
+        ## TRY TO FOLLOW T
+        if self.display[3]=='g':
+        
+            if (0<=self.hour<HEAT_TIME_STOP) or (self.hour>HEAT_TIME_START) :
+
+                print("metti in heat, accendi fan heat")
+                try:
+                
+                    while self.display[3]=='g':
+                        self.display=commandos("d",self.ser)
+                        time.sleep(WAIT)
+                    
+                    self.ser.write("q".encode())
+                    time.sleep(WAIT)
+                    self.termoconv=1
+                    
+                except:
+                    print("ERRORE IN SWITCH STATE HEAT")
+                    self.to_Error()
+                    
+            elif (HEAT_TIME_STOP<=self.hour<COLDFAN_TIME_START) and self.termoconv :
+            
+                print("spegni fan cold")
+                self.ser.write("w".encode())
+                self.termoconv=0
+                time.sleep(WAIT)
+
+            elif (COLDFAN_TIME_START<=self.hour<=HEAT_TIME_START) and (not self.termoconv):
+
+                print("accendi fan cold")
+                self.ser.write("q".encode())
+                self.termoconv=1
+                time.sleep(WAIT)
+                
+        elif self.display[3]=='r':
+        
+            if ((0<=self.hour<HEAT_TIME_STOP) or (self.hour>HEAT_TIME_START)) and (not self.termoconv) :
+
+                print("accendi fan heat")
+                self.ser.write("q".encode())
+                self.termoconv=1
+                time.sleep(WAIT)
+        
+            elif (HEAT_TIME_STOP<=self.hour<COLDFAN_TIME_START) :#and  fan :
+                print("metti in cold, spegni fan cold ")
+                try:
+                    while self.display[3]=='r':
+                        self.display=commandos("d",self.ser)
+                        time.sleep(WAIT)
+                            
+                    self.ser.write("w".encode())
+                    self.termoconv=0
+                    time.sleep(WAIT)
+                
+                except:
+                    print("ERRORE IN SWITCH STATE COLD1")
+                    self.to_Error()
+
+            elif (COLDFAN_TIME_START<=self.hour<=HEAT_TIME_START) :#and (not fan):
+                print("metti in cold, accendi fan cold")
+                try:
+                    while self.display[3]=='r':
+                        self.display=commandos("d",self.ser)
+                        time.sleep(WAIT)
+
+                    self.ser.write("q".encode())
+                    self.termoconv=1
+                    time.sleep(WAIT)
+                
+                except:                    
+                    print("ERRORE IN SWITCH STATE COLD2")
+                    self.to_Error()
+        pass
 
     ############MANUALE###########################
     def Rstboard(self) :

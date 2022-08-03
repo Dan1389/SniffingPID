@@ -16,6 +16,9 @@ from tkinter import filedialog
 
 import santomiele
 
+usrname = "pi"
+pwd = "raspberry"
+
 def createSSHClient(server, port, user, password):
     client = paramiko.SSHClient()
     client.load_system_host_keys()
@@ -42,8 +45,15 @@ def GetDatas(*args):
     
     ipgreen = _w1.Entry1.get()
     try:
-        ssh = createSSHClient(ipgreen, 22, "raspberry", "raspberry")
+        ssh = createSSHClient(ipgreen, 22, usrname, pwd)
         scp = SCPClient(ssh.get_transport())
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect(ipgreen, username=usrname, password=pwd)
+
+        stdin, stdout, stderr = ssh.exec_command('python3 /home/'+ usrname + '/Desktop/excelino.py')
+
+        for line in stdout:
+            print(line.strip('\n'))
 
         #scp.put('sampletxt1.txt', 'sampletxt2.txt')
         ##aggiungere local path
@@ -53,9 +63,15 @@ def GetDatas(*args):
             messagebox.showinfo(title="Info", message="Error in folder")
             return 
 
-        scp.get('/home/raspberry/Desktop/test.txt',local_path=folder_local)
+        scp.get('/home/'+ usrname + '/Desktop/OutputExcel/cell1.csv',local_path=folder_local)
+        scp.get('/home/'+ usrname + '/Desktop/OutputExcel/cell2.csv',local_path=folder_local)
+        scp.get('/home/'+ usrname + '/Desktop/OutputExcel/cell3.csv',local_path=folder_local)
+        scp.get('/home/'+ usrname + '/Desktop/OutputExcel/cell4.csv',local_path=folder_local)
+        scp.get('/home/'+ usrname + '/Desktop/OutputExcel/envi.csv',local_path=folder_local)
+        scp.get('/home/'+ usrname + '/Desktop/OutputExcel/senseext.csv',local_path=folder_local)
 
         scp.close()
+        ssh.close()
         messagebox.showinfo(title="Info", message="Correctly sended")
     except Exception as e :
         print(e)
@@ -69,7 +85,7 @@ def SetTemp(*args):
 
     ipgreen = _w1.Entry1.get()
     try:
-        ssh = createSSHClient(ipgreen, 22, "raspberry", "raspberry")
+        ssh = createSSHClient(ipgreen, 22, usrname , pwd)
         scp = SCPClient(ssh.get_transport())
 
         #scp.put('sampletxt1.txt', 'sampletxt2.txt')
@@ -79,7 +95,7 @@ def SetTemp(*args):
         f.write("[Control]\ntemp=" + _w1.Entry2.get())
         f.close()
 
-        scp.put('control.ini', recursive=True, remote_path='/home/raspberry/Desktop/control.ini')
+        scp.put('control.ini', recursive=True, remote_path='/home/'+ usrname + '/Desktop/control.ini')
 
         scp.close()
         messagebox.showinfo(title="Info", message="Correctly sended")
