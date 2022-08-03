@@ -5,8 +5,8 @@ from controlc import install_handler
 from readConfiguration import ConfigSectionMap  
 
 SERNAME = "/dev/ttyUSB0"
-pathTemperature = "/home/raspberry/Desktop/RaspiFy/Enviroment/serviceAux.txt"
-pathEnviro = "/home/raspberry/Desktop/PythonScript/greenhouse.txt"
+pathTemperature = "/home/pi/Desktop/RaspiFy/Enviroment/serviceAux.txt"
+pathEnviro = "/home/pi/Desktop/PythonScript/greenhouse.txt"
 
 if __name__ == '__main__':
     

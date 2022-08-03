@@ -12,6 +12,7 @@ from tkinter.constants import *
 import paramiko
 from scp import SCPClient
 from tkinter import messagebox
+from tkinter import filedialog
 
 import santomiele
 
@@ -45,7 +46,14 @@ def GetDatas(*args):
         scp = SCPClient(ssh.get_transport())
 
         #scp.put('sampletxt1.txt', 'sampletxt2.txt')
-        scp.get('/home/raspberry/Desktop/test.txt')
+        ##aggiungere local path
+        folder_local = filedialog.askdirectory()
+
+        if folder_local == None:
+            messagebox.showinfo(title="Info", message="Error in folder")
+            return 
+
+        scp.get('/home/raspberry/Desktop/test.txt',local_path=folder_local)
 
         scp.close()
         messagebox.showinfo(title="Info", message="Correctly sended")

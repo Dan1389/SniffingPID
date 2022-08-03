@@ -1,3 +1,3 @@
 #!/bin/bash
 
-sleep 60 && cd /home/raspberry/Desktop/PythonScript && source env/bin/activate && python internoSerraEnvi.py && deactivate
+sleep 60 && cd /home/pi/Desktop/PythonScriptver2 && source env/bin/activate && python internoSerraEnvi.py && deactivate

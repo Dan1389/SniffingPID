@@ -1,5 +1,6 @@
 from transitions import Machine
-from transitions import State 
+from transitions import State
+import RPi.GPIO as GPIO
 import time
 import threading
 from controlc import install_handler
@@ -13,6 +14,7 @@ DECISION_TRG = "DECISION_TIME"
 HEAT_TIME_START= 17-1
 HEAT_TIME_STOP=  8+1
 COLDFAN_TIME_START= 10
+
 
 def isnumber(x):
     if(x >= '0' and x <= '9'):
@@ -116,6 +118,8 @@ class FichiMachine(Machine,threading.Thread):
         self.pompa1 = 0
         self.pompa2 = 0
         self.display = ""
+        self.rstPIN= 11
+        self.rstPINState= False
         #SENSORE AMBIENTE INTERNO
         self.utime = 0
         self.temperature = 0
@@ -223,6 +227,7 @@ class FichiMachine(Machine,threading.Thread):
             print(self.temperatureenv,self.lux)
             print("----------------")
             
+            
         except:
             print("errore apertura file ambientale LUX/T")
 
@@ -253,8 +258,8 @@ class FichiMachine(Machine,threading.Thread):
             print("Error")
 
 
-    def Decision1(self) : 
-
+    def Decision1(self) :
+        
         if self.display[3]=='g':
         
             if (0<=self.hour<HEAT_TIME_STOP) or (self.hour>HEAT_TIME_START) :
@@ -331,11 +336,17 @@ class FichiMachine(Machine,threading.Thread):
             pass
 
     ############MANUALE###########################
-    def Rstboard(self) : 
+    def Rstboard(self) :
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(self.rstPIN,GPIO.OUT)
         try:
-            #self.ser.write(self.RSTCMD.encode())
-#             self.display = commandos(self.RSTCMD,self.ser,WAIT_MANUAL)
-#             print(self.display)
+            self.rstPINState = not self.rstPINState
+            GPIO.output(self.rstPIN, self.rstPINState)
+            time.sleep(0.2)
+            self.rstPINState = not self.rstPINState
+            GPIO.output(self.rstPIN, self.rstPINState)
+            time.sleep(0.2)
+            GPIO.cleanup()
             print("Inviato RST")
         except:
             print("Serial Error")
@@ -472,7 +483,7 @@ class FichiMachine(Machine,threading.Thread):
             if self.mode == 'a':
                 #DECISIONE STATO
                 if self.display != False:
-                    if self.display == " E3":
+                    if (self.display == " e3g") or (self.display == " e3r") :
                         self.trigger("ERROR")
                     elif self.display == "OFF":
                         self.trigger("POWERON")
