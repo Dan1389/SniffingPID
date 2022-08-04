@@ -79,6 +79,11 @@ class ButtonThreadrPi(threading.Thread):
                     printdbg(self.trigger)
                     if self.qs != None:
                         self.qs.put( self.trigger )
+                elif c=='j':
+                    self.trigger = 'RESET_BOARD2'
+                    printdbg(self.trigger)
+                    if self.qs != None:
+                        self.qs.put( self.trigger )
                 elif c=='q':
                     self.trigger = 'FAN_ON'
                     printdbg(self.trigger)

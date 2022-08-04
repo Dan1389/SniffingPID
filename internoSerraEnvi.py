@@ -55,6 +55,7 @@ if __name__ == "__main__":
                 f.write(finalstr)
                 flog.write(finalstr + "\n")
             except:
+                f.write("Errore\n")
                 print("Errore")
             f.close()
             flog.close()

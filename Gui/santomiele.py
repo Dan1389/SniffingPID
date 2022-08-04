@@ -117,14 +117,14 @@ class Toplevel1:
         self.Entry2.insert(END, '40')
 
         self.Label2 = tk.Label(self.Labelframe1)
-        self.Label2.place(relx=0.108, rely=0.457, height=21, width=144
+        self.Label2.place(relx=0.108, rely=0.457, height=21, width=200
                 , bordermode='ignore')
         self.Label2.configure(anchor='w')
         self.Label2.configure(background="#d9d9d9")
         self.Label2.configure(compound='left')
         self.Label2.configure(disabledforeground="#a3a3a3")
         self.Label2.configure(foreground="#000000")
-        self.Label2.configure(text='''Temperature [°C] [30-60]''')
+        self.Label2.configure(text='''Temperature [°C] [31-49]''')
 
 def start_up():
     santomiele_support.main()

@@ -4,16 +4,9 @@ import queue
 from controlc import install_handler
 from readConfiguration import ConfigSectionMap  
 
-RASPBERRY = "NUOVA"
-
 SERNAME = "/dev/ttyUSB0"
-if RASPBERRY == "VECCHIA":
-      pathTemperature = "/home/pi/Desktop/RaspiFy/Enviroment/serviceAux.txt"
-      pathEnviro = "/home/pi/Desktop/PythonScriptver2/greenhouse.txt"
-else:
-      pathTemperature = "/home/raspberry/Desktop/RaspiFy/Enviroment/serviceAux.txt"
-      pathEnviro = "/home/raspberry/Desktop/PythonScriptver2/greenhouse.txt"  
-
+pathTemperature = "/home/pi/Desktop/RaspiFy/Enviroment/serviceAux.txt"
+pathEnviro = "/home/pi/Desktop/PythonScriptver2/greenhouse.txt"
 
 if __name__ == '__main__':
     

@@ -2,19 +2,49 @@ from transitions import Machine
 from transitions import State
 import RPi.GPIO as GPIO
 import time
+import os
 import threading
 from controlc import install_handler
 import serial
 from datetime import datetime
+import configparser
+
 WAIT_RESPONSE=1
 WAIT_MANUAL = 1
 WAIT = 1
-DECISION_TRG = "DECISION_TIME"
+DECISION_TRG = "DECISION_FUSION"
 
 HEAT_TIME_START= 17-1
 HEAT_TIME_STOP=  8+1
 COLDFAN_TIME_START= 10
 
+folderlogGh = "./LogGreenhouse/"
+
+
+def create_directory(namedir):
+    try:
+        os.mkdir(namedir)
+    except OSError:
+        print ("Creation of the directory %s failed" % namedir)
+    else:
+        print ("Successfully created the directory %s " % namedir)
+
+def openConfig(fn):
+    config = configparser.ConfigParser()
+    config.read(fn)
+    return config
+
+def ConfigSectionMap(section):
+    dict1 = {}
+    config = openConfig("control.ini")
+    options = config.options(section)
+    for option in options:
+        try:
+            dict1[option] = config.get(section, option)
+        except:
+            dict1[option] = None
+    return dict1
+    
 
 def isnumber(x):
     if(x >= '0' and x <= '9'):
@@ -103,6 +133,7 @@ class FichiMachine(Machine,threading.Thread):
         self.pathnameenv = pathenv
         self.sername = serial
         self.ser = ""
+        self.pathlogGh = folderlogGh + str(int(time.time())) + ".logGh"
         self.RSTCMD = "k"
         self.TUPCMD = "r"
         self.TDOCMD = "f"
@@ -120,8 +151,11 @@ class FichiMachine(Machine,threading.Thread):
         self.display = ""
         self.rstPIN= 11
         self.rstPINState= False
-        # IN CASO DI DECISION2 IMPOSTA LA MODALITà CALDO FREDDO
-        self.mode = ""
+        self.rstPIN2= 0
+        self.rstPIN2State= False
+        self.OUTPUT_STATE= False
+        self.countingFailure=0
+        self.disableDecision2=False
         #SENSORE AMBIENTE INTERNO
         self.utime = 0
         self.temperature = 0
@@ -146,6 +180,7 @@ class FichiMachine(Machine,threading.Thread):
             State(name='Decision1',  on_enter=['Decision1']),
             State(name='Decision2',  on_enter=['Decision2']),
             State(name='Rstboard',  on_enter=['Rstboard']),
+            State(name='Rstboard2',  on_enter=['Rstboard2']),
             State(name='Tupfun',    on_enter=['Tupfun'  ]),
             State(name='Tdownfun',  on_enter=['Tdownfun']),
             State(name='Prgfun',    on_enter=['Prgfun'  ]),
@@ -173,6 +208,7 @@ class FichiMachine(Machine,threading.Thread):
 
             #Manuale
             { 'trigger': 'RESET_BOARD'  , 'source': '*'           , 'dest': 'Rstboard'   },
+            { 'trigger': 'RESET_BOARD2'  , 'source': '*'           , 'dest': 'Rstboard2'   },
             { 'trigger': 'TEMP_UP'      , 'source': '*'           , 'dest': 'Tupfun'     },
             { 'trigger': 'TEMP_DOWN'    , 'source': '*'           , 'dest': 'Tdownfun'   },
             { 'trigger': 'PRG_BUTTON'   , 'source': '*'           , 'dest': 'Prgfun'     },
@@ -189,49 +225,91 @@ class FichiMachine(Machine,threading.Thread):
 
         Machine(self, states=states, transitions=transitions, ignore_invalid_triggers=True, initial='Start')
 
-    def Idle(self) : 
-        try:
-            f = open(self.pathname , "r")
-            string = f.readline()
+    def Idle(self) :
+        
+        stringtolog = ""
+        strline1="null"
+        strline2="null"
+        strline3="null"
+        strline4="null"
+        strline5="null"
+        
+        if self.countingFailure > 10:
+            self.trigger("RESET_BOARD")
+        else:
+            try:
+                f = open(self.pathname , "r")
+                string = f.readline()
 
-            self.utime = int(string.split(";")[0])
-            self.temperature  = float(string.split(";")[1])
-            self.hum = float(string.split(";")[2])
-            date=datetime.utcfromtimestamp(self.utime).strftime('%Y-%m-%d %H:%M:%S')
-            hours=date.split(" ")[1]
-            self.hour=int(hours.split(":")[0])+2
-            f.close()
-            print("SENSORE INTERNO")
-            print("T,Hum,Display,Fan")
-            print("----------------")
-            print(date)
-            print(self.temperature,self.hum,self.display,self.termoconv)
-            print("----------------")
-            if self.mode == 'a':
+                self.utime = int(string.split(";")[0])
+                self.temperature  = float(string.split(";")[1])
+                self.hum = float(string.split(";")[2])
+                date=datetime.utcfromtimestamp(self.utime).strftime('%Y-%m-%d %H:%M:%S')
+                hours=date.split(" ")[1]
+                self.hour=int(hours.split(":")[0])+2
+                f.close()
+                noprintInt=False
+
+            except:
+                print("errore apertura file ambientale BME")
+                noprintInt=True
+
+            try:
+                f = open(self.pathnameenv , "r")
+                string = f.readline()
+                
+                if string == "Errore":
+                    self.trigger("RESET_BOARD2")
+                    noprintExt=True
+                else:
+                    self.utimeenv = int(string.split(";")[0])
+                    self.temperatureenv  = float(string.split(";")[2])
+                    self.lux = float(string.split(";")[1])
+                    dateenv=datetime.utcfromtimestamp(self.utime).strftime('%Y-%m-%d %H:%M:%S')
+                    f.close()
+                    noprintExt=False
+               
+                self.disableDecision2=False
+                
+            except:
+                self.disableDecision2=True
+                print("errore apertura file ambientale LUX/T")
+                noprintExt=True
+            
+            if not noprintInt:
+                strline1="SENSORE INTERNO "+ date
+                print(strline1)
+                strline2="   T:"+ str(self.temperature) + " Hum:" + str(self.hum) + " Fan:"+str(self.termoconv)
+                print(strline2)
+
                 self.display=commandos("m",self.ser)
-                print("Display:",self.display)
-        except:
-            print("errore apertura file ambientale BME")
-
-        try:
-            f = open(self.pathnameenv , "r")
-            string = f.readline()
-
-            self.utimeenv = int(string.split(";")[0])
-            self.temperatureenv  = float(string.split(";")[1])
-            self.lux = float(string.split(";")[2])
-            dateenv=datetime.utcfromtimestamp(self.utime).strftime('%Y-%m-%d %H:%M:%S')
+                strline3="   Display aggiornato:"+str(self.display)
+                print(strline3)
+                if self.display == False:
+                    self.countingFailure = self.countingFailure + 1
+                else :
+                    self.countingFailure = 0
+            else:
+                print("chitammuo")
+            
+            if not noprintExt:
+                strline4="      SENSORE ESTERNO "+ dateenv
+                print(strline4)
+                strline5="          T:"+str(self.temperatureenv) +" Lux:"+ str(self.lux)
+                print(strline5)
+            else:
+                print("chitastramuo")
+            
+            f = open(self.pathlogGh , "a+")
+            
+            f.write(strline1)
+            f.write(strline2)
+            f.write(strline3)
+            f.write(strline4)
+            f.write(strline5+"\n")
+            
             f.close()
-            print("SENSORE ESTERNO")
-            print("T,Lux")
-            print("----------------")
-            print(dateenv)
-            print(self.temperatureenv,self.lux)
-            print("----------------")
             
-            
-        except:
-            print("errore apertura file ambientale LUX/T")
 
     ##############AUTOMATICO##################
        
@@ -333,82 +411,156 @@ class FichiMachine(Machine,threading.Thread):
                 except:                    
                     print("ERRORE IN SWITCH STATE COLD2")
                     self.to_Error()
-#TODO
-    def Decision2(self) : 
-        ## TRY TO FOLLOW T
+
+    def getMode(self):
+    
         if self.display[3]=='g':
-        
-            if (0<=self.hour<HEAT_TIME_STOP) or (self.hour>HEAT_TIME_START) :
-
-                print("metti in heat, accendi fan heat")
-                try:
-                
-                    while self.display[3]=='g':
-                        self.display=commandos("d",self.ser)
-                        time.sleep(WAIT)
-                    
-                    self.ser.write("q".encode())
-                    time.sleep(WAIT)
-                    self.termoconv=1
-                    
-                except:
-                    print("ERRORE IN SWITCH STATE HEAT")
-                    self.to_Error()
-                    
-            elif (HEAT_TIME_STOP<=self.hour<COLDFAN_TIME_START) and self.termoconv :
-            
-                print("spegni fan cold")
-                self.ser.write("w".encode())
-                self.termoconv=0
-                time.sleep(WAIT)
-
-            elif (COLDFAN_TIME_START<=self.hour<=HEAT_TIME_START) and (not self.termoconv):
-
-                print("accendi fan cold")
-                self.ser.write("q".encode())
-                self.termoconv=1
-                time.sleep(WAIT)
-                
+            MODE="COOLING"
         elif self.display[3]=='r':
+            MODE="HEATING"
+        else:
+            MODE=False
         
-            if ((0<=self.hour<HEAT_TIME_STOP) or (self.hour>HEAT_TIME_START)) and (not self.termoconv) :
+        return MODE
+ 
+    def setFan(self,mode,outputState):
+    
+        print("accendi fan " + mode )
+        self.ser.write("q".encode())
+        self.termoconv=1
+        time.sleep(WAIT)
+        self.OUTPUT_STATE=outputState
 
-                print("accendi fan heat")
-                self.ser.write("q".encode())
-                self.termoconv=1
-                time.sleep(WAIT)
+    def unsetFan(self,mode,outputState):
+    
+        print("spegni fan "+ mode)
+        self.ser.write("w".encode())
+        self.termoconv=0
+        time.sleep(WAIT)
+        self.OUTPUT_STATE=outputState
+    
+    def setHeat(self,mode,outputState):
+    
+        if mode=="HEATING" and self.termoconv :
         
-            elif (HEAT_TIME_STOP<=self.hour<COLDFAN_TIME_START) :#and  fan :
-                print("metti in cold, spegni fan cold ")
-                try:
-                    while self.display[3]=='r':
-                        self.display=commandos("d",self.ser)
-                        time.sleep(WAIT)
+            self.unsetFan(mode,outputState)
+            
+        elif mode=="COOLING":
+        
+            print("metti in HEATING, spegni fan ")
+            try:
+                while self.getMode()==mode:
+                    self.display=commandos("d",self.ser)
+                    time.sleep(WAIT)
+                        
+                self.unsetFan("HEATING",outputState)
+            
+            except:
+                print("ERRORE IN SWITCH STATE COLD1")
+                self.OUTPUT_STATE=0
+                self.to_Error()
+    
+    def setHeatAndFan(self,mode,outputState):
+        
+        if mode=="COOLING":
+            print("metti in HEATING, set fan ")
+            try:
+            
+                while self.getMode()==mode:
+                    self.display=commandos("d",self.ser)
+                    time.sleep(WAIT)
+                
+                self.setFan("HEATING",outputState)
+                
+            except:
+                print("ERRORE IN SWITCH STATE HEAT")
+                self.OUTPUT_STATE=0
+                self.to_Error()
+                
+                
+        elif mode=="HEATING" and (not self.termoconv) :
+            
+            self.setFan(mode,outputState)
+                 
+    def setCold(self,mode,outputState):
+    
+        if mode=="COOLING" and self.termoconv :
+        
+            self.unsetFan(mode,outputState)
+            
+        elif mode=="HEATING":
+        
+            print("metti in COOLING, spegni fan ")
+            try:
+                while self.getMode()==mode:
+                    self.display=commandos("d",self.ser)
+                    time.sleep(WAIT)
+                        
+                self.unsetFan("COOLING",outputState)
+            
+            except:
+                print("ERRORE IN SWITCH STATE COLD1")
+                self.OUTPUT_STATE=0
+                self.to_Error()
+   
+    def setColdAndFan(self,mode,outputState):
+        
+        if mode=="COOLING" and (not self.termoconv):
+        
+            self.setFan(mode,outputState)
+        
+        elif mode=="HEATING":
+        
+            print("metti in COOLING, accendi fan ")
+            try:
+                while self.display[3]=='r':
+                    self.display=commandos("d",self.ser)
+                    time.sleep(WAIT)
+
+                self.setFan("COOLING",outputState)
+            
+            except:                    
+                print("ERRORE IN SWITCH STATE COLD2")
+                self.OUTPUT_STATE=0
+                self.to_Error()
+      
+    def Decision2(self):
+        
+        ERROR_STATE    = 0
+        HEAT_STATE     = 1 
+        HEAT_FAN_STATE = 2
+        COLD_STATE     = 3
+        COLD_FAN_STATE = 4
+        
+        temp= ConfigSectionMap("Control")
+        TEMP_SET= float(temp["temp"])
+        
+        #TEMP_SET= 40
+        TEMP_SET_MIN= 30
+    
+        temperature=self.temperatureenv
+        
+        if (0<=self.hour<HEAT_TIME_STOP) or (self.hour>HEAT_TIME_START) :
+            
+            if temperature>TEMP_SET:     
+                self.setHeat(self.getMode(),HEAT_STATE)
+                
+            else:
+                self.setHeatAndFan(self.getMode(),HEAT_FAN_STATE)
+                
+                
+        elif (HEAT_TIME_STOP<=self.hour<COLDFAN_TIME_START) :
+            
+            if temperature>TEMP_SET_MIN:
+                self.setCold(self.getMode(),COLD_STATE)
                             
-                    self.ser.write("w".encode())
-                    self.termoconv=0
-                    time.sleep(WAIT)
+        elif (COLDFAN_TIME_START<=self.hour<=HEAT_TIME_START):
+            
+            if temperature>TEMP_SET:
+                self.setColdAndFan(self.getMode(),COLD_FAN_STATE)
+            else:
+                self.setCold(self.getMode(),COLD_STATE)
                 
-                except:
-                    print("ERRORE IN SWITCH STATE COLD1")
-                    self.to_Error()
-
-            elif (COLDFAN_TIME_START<=self.hour<=HEAT_TIME_START) :#and (not fan):
-                print("metti in cold, accendi fan cold")
-                try:
-                    while self.display[3]=='r':
-                        self.display=commandos("d",self.ser)
-                        time.sleep(WAIT)
-
-                    self.ser.write("q".encode())
-                    self.termoconv=1
-                    time.sleep(WAIT)
-                
-                except:                    
-                    print("ERRORE IN SWITCH STATE COLD2")
-                    self.to_Error()
-        pass
-
     ############MANUALE###########################
     def Rstboard(self) :
         GPIO.setmode(GPIO.BCM)
@@ -422,6 +574,21 @@ class FichiMachine(Machine,threading.Thread):
             time.sleep(0.2)
             GPIO.cleanup()
             print("Inviato RST")
+        except:
+            print("Serial Error")
+            
+    def Rstboard2(self) :
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(self.rstPIN2,GPIO.OUT)
+        try:
+            self.rstPIN2State = not self.rstPIN2State
+            GPIO.output(self.rstPIN2, self.rstPIN2State)
+            time.sleep(0.2)
+            self.rstPIN2State = not self.rstPIN2State
+            GPIO.output(self.rstPIN2, self.rstPIN2State)
+            time.sleep(0.2)
+            GPIO.cleanup()
+            print("Inviato RST2")
         except:
             print("Serial Error")
        
@@ -547,7 +714,8 @@ class FichiMachine(Machine,threading.Thread):
             self.to_Init()
 
     def run(self):
-
+        
+        create_directory(folderlogGh)
         self.trigger("START")
 
         while self.state != "Idle":
@@ -561,14 +729,17 @@ class FichiMachine(Machine,threading.Thread):
                         self.trigger("ERROR")
                     elif self.display == "OFF":
                         self.trigger("POWERON")
-                    elif len(self.display)>3: 
-                        self.trigger(DECISION_TRG)
+                    elif len(self.display)>3:
+                        if self.disableDecision2:
+                            self.trigger("DECISION_TIME")
+                        else:
+                            self.trigger("DECISION_FUSION")
                 try:
                     item = self.qs["toFSM"].get(block=False)
                     self.trigger(item)  
                     self.qs["toFSM"].task_done()
                 except:
-                    print("coda vuota")
+                    print("no external cmd")
                 time.sleep(4)
             else:
                 try:
@@ -576,7 +747,7 @@ class FichiMachine(Machine,threading.Thread):
                     self.trigger(item)  
                     self.qs["toFSM"].task_done()
                 except:
-                    print("coda vuota")
+                    print("no external cmd")
         
             time.sleep(1)
             if self.state != "Error":

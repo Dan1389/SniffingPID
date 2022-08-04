@@ -72,7 +72,7 @@ def GetDatas(*args):
 
         scp.close()
         ssh.close()
-        messagebox.showinfo(title="Info", message="Correctly sended")
+        messagebox.showinfo(title="Info", message="Correctly sent")
     except Exception as e :
         print(e)
         messagebox.showinfo(title="Info", message="Timeout Error")
@@ -92,13 +92,21 @@ def SetTemp(*args):
         #scp.get('sampletxt2.txt')
 
         f = open("control.ini", "w+")
+        try:
+            tgui = float(_w1.Entry2.get())
+            if tgui < 31 or tgui > 49:
+                messagebox.showinfo(title="Info", message="Exceed limits")
+                return
+        except:
+            messagebox.showinfo(title="Info", message="Wrong param")
+            return
         f.write("[Control]\ntemp=" + _w1.Entry2.get())
         f.close()
 
-        scp.put('control.ini', recursive=True, remote_path='/home/'+ usrname + '/Desktop/control.ini')
+        scp.put('control.ini', recursive=True, remote_path='/home/'+ usrname + '/Desktop/PythonScriptver2/sniffingmacchinastadi/control.ini')
 
         scp.close()
-        messagebox.showinfo(title="Info", message="Correctly sended")
+        messagebox.showinfo(title="Info", message="Correctly sent")
     except Exception as e :
         print(e)
         messagebox.showinfo(title="Info", message="Timeout Error")
