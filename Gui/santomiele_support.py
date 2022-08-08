@@ -13,11 +13,29 @@ import paramiko
 from scp import SCPClient
 from tkinter import messagebox
 from tkinter import filedialog
+import glob
+import os
+import shutil
 
 import santomiele
 
 usrname = "pi"
 pwd = "raspberry"
+pathLog = "./logGh" 
+
+
+def create_directory(namedir):
+    try:
+        shutil.rmtree(namedir)
+    except Exception as e:
+        print(e)
+    try:
+        os.mkdir(namedir)
+    except OSError:
+        print ("Creation of the directory %s failed" % namedir)
+    else:
+        print ("Successfully created the directory %s " % namedir)
+
 
 def createSSHClient(server, port, user, password):
     client = paramiko.SSHClient()
@@ -35,6 +53,7 @@ def main(*args):
     global _top1, _w1
     _top1 = root
     _w1 = santomiele.Toplevel1(_top1)
+    create_directory(pathLog)
     root.mainloop()
 
 def GetDatas(*args):
@@ -42,7 +61,7 @@ def GetDatas(*args):
     for arg in args:
         print ('another arg:', arg)
     sys.stdout.flush()
-    
+
     ipgreen = _w1.Entry1.get()
     try:
         ssh = createSSHClient(ipgreen, 22, usrname, pwd)
@@ -61,7 +80,7 @@ def GetDatas(*args):
 
         if folder_local == None:
             messagebox.showinfo(title="Info", message="Error in folder")
-            return 
+            return
 
         scp.get('/home/'+ usrname + '/Desktop/OutputExcel/cell1.csv',local_path=folder_local)
         scp.get('/home/'+ usrname + '/Desktop/OutputExcel/cell2.csv',local_path=folder_local)
@@ -111,13 +130,46 @@ def SetTemp(*args):
         print(e)
         messagebox.showinfo(title="Info", message="Timeout Error")
 
-    
+
+    sys.stdout.flush()
+
+
+def ReadLog(*args):
+    print('santomiele_support.ReadLog')
+    for arg in args:
+        print ('another arg:', arg)
+
+    ipgreen = _w1.Entry1.get()
+    try:
+        ssh = createSSHClient(ipgreen, 22, usrname , pwd)
+        scp = SCPClient(ssh.get_transport())
+
+        path = '/home/'+ usrname + '/Desktop/PythonScriptver2/sniffingmacchinastadi/LogGreenhouse/'
+
+        list_of_files = glob.glob(path) 
+        latest_file = max(list_of_files, key=os.path.getmtime)
+        print(latest_file)
+
+
+        scp.get(latest_file , local_path=pathLog)
+
+
+        temp = 0
+        state = "ON"
+
+        _w1.Entry0.configure(state= "normal")
+        _w1.Entry0.delete(0, 'end')
+        _w1.Entry0.insert(END,"T: " + str(temp) + " System: " + state )
+        _w1.Entry0.configure(state= "disabled")
+
+        scp.close()
+        messagebox.showinfo(title="Info", message="Correctly sent")
+    except Exception as e :
+        print(e)
+        messagebox.showinfo(title="Info", message="Timeout Error")
+
+
     sys.stdout.flush()
 
 if __name__ == '__main__':
     santomiele.start_up()
-
-
-
-
-

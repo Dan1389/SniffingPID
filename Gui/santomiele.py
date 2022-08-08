@@ -72,6 +72,39 @@ class Toplevel1:
         self.Label1.configure(highlightcolor="black")
         self.Label1.configure(text='''Greenhouse IP''')
 
+
+##NUOVA
+        self.Button0 = tk.Button(self.Labelframe1)
+        self.Button0.place(relx=0.542, rely=0.305, height=34, width=137
+                , bordermode='ignore')
+        self.Button0.configure(activebackground="#ececec")
+        self.Button0.configure(activeforeground="#000000")
+        self.Button0.configure(background="#d9d9d9")
+        self.Button0.configure(command=santomiele_support.ReadLog)
+        self.Button0.configure(compound='left')
+        self.Button0.configure(disabledforeground="#a3a3a3")
+        self.Button0.configure(foreground="#000000")
+        self.Button0.configure(highlightbackground="#d9d9d9")
+        self.Button0.configure(highlightcolor="black")
+        self.Button0.configure(pady="0")
+        self.Button0.configure(text='''Greenhouse''')
+
+
+        self.Entry0 = tk.Entry(self.Labelframe1)
+        self.Entry0.place(relx=0.081, rely=0.305, height=34, width=137
+                , bordermode='ignore')
+        self.Entry0.configure(background="white")
+        self.Entry0.configure(disabledforeground="#a3a3a3")
+        self.Entry0.configure(font="-family {Courier New} -size 8")
+        self.Entry0.configure(foreground="#000000")
+        self.Entry0.configure(highlightbackground="#d9d9d9")
+        self.Entry0.configure(highlightcolor="black")
+        self.Entry0.configure(insertbackground="black")
+        self.Entry0.configure(selectbackground="blue")
+        self.Entry0.configure(selectforeground="white")
+        self.Entry0.configure(state= "disabled")
+##
+
         self.Button1 = tk.Button(self.Labelframe1)
         self.Button1.place(relx=0.542, rely=0.505, height=74, width=137
                 , bordermode='ignore')
