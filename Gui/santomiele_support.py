@@ -13,9 +13,9 @@ import paramiko
 from scp import SCPClient
 from tkinter import messagebox
 from tkinter import filedialog
-import glob
 import os
 import shutil
+import re
 
 import santomiele
 
@@ -144,22 +144,24 @@ def ReadLog(*args):
         ssh = createSSHClient(ipgreen, 22, usrname , pwd)
         scp = SCPClient(ssh.get_transport())
 
-        path = '/home/'+ usrname + '/Desktop/PythonScriptver2/sniffingmacchinastadi/LogGreenhouse/'
+        stdin, stdout, stderr = ssh.exec_command('python3 /home/'+ usrname + '/Desktop/ghlog.py')
 
-        list_of_files = glob.glob(path) 
-        latest_file = max(list_of_files, key=os.path.getmtime)
-        print(latest_file)
+        result = re.search('Display aggiornato:(.*)      SENSORE ESTERNO', stdout)
+        disp = result.group(1)
+        print(result.group(1))
+        
+        result = re.search('T:(.*) Hum:', stdout)
+        temp = result.group(1)
+        print(result.group(1))
 
-
-        scp.get(latest_file , local_path=pathLog)
-
-
-        temp = 0
-        state = "ON"
+        if disp.find("g") > 0:
+            state = "ON"
+        else:
+            state = "OFF"
 
         _w1.Entry0.configure(state= "normal")
         _w1.Entry0.delete(0, 'end')
-        _w1.Entry0.insert(END,"T: " + str(temp) + " System: " + state )
+        _w1.Entry0.insert(END,"T:" + str(temp) + " System:" + state )
         _w1.Entry0.configure(state= "disabled")
 
         scp.close()

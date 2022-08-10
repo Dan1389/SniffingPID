@@ -150,7 +150,7 @@ class Toplevel1:
         self.Entry2.insert(END, '40')
 
         self.Label2 = tk.Label(self.Labelframe1)
-        self.Label2.place(relx=0.108, rely=0.457, height=21, width=200
+        self.Label2.place(relx=0.088, rely=0.457, height=21, width=150
                 , bordermode='ignore')
         self.Label2.configure(anchor='w')
         self.Label2.configure(background="#d9d9d9")
@@ -164,7 +164,5 @@ def start_up():
 
 if __name__ == '__main__':
     santomiele_support.main()
-
-
 
 
