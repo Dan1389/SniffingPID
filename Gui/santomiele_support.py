@@ -87,8 +87,10 @@ def GetDatas(*args):
         scp.get('/home/'+ usrname + '/Desktop/OutputExcel/cell3.csv',local_path=folder_local)
         scp.get('/home/'+ usrname + '/Desktop/OutputExcel/cell4.csv',local_path=folder_local)
         scp.get('/home/'+ usrname + '/Desktop/OutputExcel/envi.csv',local_path=folder_local)
-        scp.get('/home/'+ usrname + '/Desktop/OutputExcel/senseext.csv',local_path=folder_local)
-
+        try:
+            scp.get('/home/'+ usrname + '/Desktop/OutputExcel/senseext.csv',local_path=folder_local)
+        except:
+            pass
         scp.close()
         ssh.close()
         messagebox.showinfo(title="Info", message="Correctly sent")
@@ -113,7 +115,7 @@ def SetTemp(*args):
         f = open("control.ini", "w+")
         try:
             tgui = float(_w1.Entry2.get())
-            if tgui < 31 or tgui > 49:
+            if tgui < 31 or tgui > 60:
                 messagebox.showinfo(title="Info", message="Exceed limits")
                 return
         except:
@@ -147,23 +149,30 @@ def ReadLog(*args):
         stdin, stdout, stderr = ssh.exec_command('python3 /home/'+ usrname + '/Desktop/ghlog.py')
         stdoutStr=stdout.readline()
         #print(stdoutStr,type(stdoutStr))
-            
-        result = re.search('Display aggiornato: (.*)      SENSORE ESTERNO', stdoutStr)
+           
+        result = re.search('Display aggiornato: (.*)', stdoutStr)
         #SENSORE INTERNO 2022-08-16 09:22:27   T:40.07 Hum:31.31 Fan:0   Display aggiornato: 25g      SENSORE ESTERNO 2022-08-16 09:22:27          T:30.5 Lux:16100.0 
         print(result)
-        disp = result.group(1)
-        print(result.group(1))
+        #disp = result.group(1)
+        #print(result.group(1))
         
-        result = re.search('T:(.*) Hum:', stdoutStr)
-        temp = result.group(1)
-        print(result.group(1))
+        try:
+            disp = result.group(1)
+            print(result.group(1))
+            
+            result = re.search('T:(.*) Hum:', stdoutStr)
+            temp = result.group(1)
+            print(result.group(1))
 
-        if disp.find("g") > 0:
-            state = "ON cooling"
-        elif disp.find("r")>0:
-            state = "ON heating"
-        else:
-            state ="OFF"
+            if disp.find("g") > 0:
+                state = "ON cooling"
+            elif disp.find("r")>0:
+                state = "ON heating"
+            else:
+                state ="OFF"
+        except:
+            
+            state= "Error"
 
         _w1.Entry0.configure(state= "normal")
         _w1.Entry0.delete(0, 'end')

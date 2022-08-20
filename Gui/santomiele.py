@@ -157,7 +157,7 @@ class Toplevel1:
         self.Label2.configure(compound='left')
         self.Label2.configure(disabledforeground="#a3a3a3")
         self.Label2.configure(foreground="#000000")
-        self.Label2.configure(text='''Temperature [°C] [31-49]''')
+        self.Label2.configure(text='''Temperature [°C] [31-60]''')
 
 def start_up():
     santomiele_support.main()

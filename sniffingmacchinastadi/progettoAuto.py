@@ -4,7 +4,7 @@ import queue
 from controlc import install_handler
 from readConfiguration import ConfigSectionMap  
 
-SERNAME = "/dev/ttyUSB0"
+SERNAME = "/dev/ttyUSB1"
 pathTemperature = "/home/pi/Desktop/RaspiFy/Enviroment/serviceAux.txt"
 pathEnviro = "/home/pi/Desktop/PythonScriptver2/greenhouse.txt"
 

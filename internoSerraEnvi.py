@@ -13,10 +13,10 @@ GPIO.setup(RESET,GPIO.OUT)
 #time.sleep(0.2)
 GPIO.output(RESET, False)
 time.sleep(0.2)
-GPIO.cleanup()
+#GPIO.cleanup()
 
 
-SERNAME = "/dev/ttyUSB1"
+SERNAME = "/dev/ttyUSB0"
 pathTemperature = "./greenhouse.txt"
 pathFolder = "./logExt"
 fileName = str(int(time.time())) + ".txt"
@@ -30,10 +30,27 @@ def create_directory(namedir):
     else:
         print ("Successfully created the directory %s " % namedir)
         
+def Rstboard(RESET,rst):
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(RESET,GPIO.OUT)
+        try:
+            rst = not rst
+            GPIO.output(RESET, rst)
+            time.sleep(0.2)
+            rst = not rst
+            GPIO.output(RESET, rst)
+            time.sleep(0.2)
+            GPIO.cleanup()
+            print("Inviato RST")
+        except:
+            print("Serial Error")
+ 
 
 if __name__ == "__main__":
     
     try:
+        #Rstboard(RESET,rst)
+        #print("reset")
         create_directory(pathFolder)
         ser = serial.Serial(SERNAME)
         ser.baudrate = 9600

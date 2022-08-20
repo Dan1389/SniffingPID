@@ -3,3 +3,8 @@
 *.bak1
 *.bak2
 *.txt
+Gui/build/
+Gui/dist/
+*.spec
+*.bak
+*.bak

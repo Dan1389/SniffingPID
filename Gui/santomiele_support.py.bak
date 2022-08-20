@@ -70,7 +70,7 @@ def GetDatas(*args):
         ssh.connect(ipgreen, username=usrname, password=pwd)
 
         stdin, stdout, stderr = ssh.exec_command('python3 /home/'+ usrname + '/Desktop/excelino.py')
-
+        
         for line in stdout:
             print(line.strip('\n'))
 
@@ -145,23 +145,30 @@ def ReadLog(*args):
         scp = SCPClient(ssh.get_transport())
 
         stdin, stdout, stderr = ssh.exec_command('python3 /home/'+ usrname + '/Desktop/ghlog.py')
-
-        result = re.search('Display aggiornato:(.*)      SENSORE ESTERNO', stdout)
+        stdoutStr=stdout.readline()
+        #print(stdoutStr,type(stdoutStr))
+            
+        result = re.search('Display aggiornato: (.*)      SENSORE ESTERNO', stdoutStr)
+        #SENSORE INTERNO 2022-08-16 09:22:27   T:40.07 Hum:31.31 Fan:0   Display aggiornato: 25g      SENSORE ESTERNO 2022-08-16 09:22:27          T:30.5 Lux:16100.0 
+        print(result)
         disp = result.group(1)
         print(result.group(1))
         
-        result = re.search('T:(.*) Hum:', stdout)
+        result = re.search('T:(.*) Hum:', stdoutStr)
         temp = result.group(1)
         print(result.group(1))
 
         if disp.find("g") > 0:
-            state = "ON"
+            state = "ON cooling"
+        elif disp.find("r")>0:
+            state = "ON heating"
         else:
-            state = "OFF"
+            state ="OFF"
 
         _w1.Entry0.configure(state= "normal")
         _w1.Entry0.delete(0, 'end')
-        _w1.Entry0.insert(END,"T:" + str(temp) + " System:" + state )
+        #_w1.Entry0.insert(END,"T:" + str(temp) + " System:" + state )
+        _w1.Entry0.insert(END," System:" + state )
         _w1.Entry0.configure(state= "disabled")
 
         scp.close()

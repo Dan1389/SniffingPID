@@ -117,7 +117,11 @@ def commandos(cmd,ser,wait = WAIT_RESPONSE):
                         break
                     else:
                         TX_ongoing=False
-                        break           
+                        break
+            else:
+                disp=False
+                TX_ongoing=False
+                
         return disp   
     except:
         #print("ERRORE COMANDO")
@@ -155,7 +159,7 @@ class FichiMachine(Machine,threading.Thread):
         self.rstPIN2State= False
         self.OUTPUT_STATE= False
         self.countingFailure=0
-        self.disableDecision2=False
+        self.disableDecision2=True
         #SENSORE AMBIENTE INTERNO
         self.utime = 0
         self.temperature = 0
@@ -231,11 +235,12 @@ class FichiMachine(Machine,threading.Thread):
         strline1="null"
         strline2="null"
         strline3="null"
-        strline4="null"
-        strline5="null"
+        strline4=""
+        strline5=""
         
         if self.countingFailure > 10:
             self.trigger("RESET_BOARD")
+            self.countingFailure=0
         else:
             try:
                 f = open(self.pathname , "r")
@@ -255,13 +260,16 @@ class FichiMachine(Machine,threading.Thread):
                 noprintInt=True
 
             try:
+                
                 f = open(self.pathnameenv , "r")
                 string = f.readline()
                 
                 if string == "Errore":
+                    
                     self.trigger("RESET_BOARD2")
                     noprintExt=True
                 else:
+                    
                     self.utimeenv = int(string.split(";")[0])
                     self.temperatureenv  = float(string.split(";")[2])
                     self.lux = float(string.split(";")[1])
@@ -285,10 +293,16 @@ class FichiMachine(Machine,threading.Thread):
                 self.display=commandos("m",self.ser)
                 strline3="   Display aggiornato:"+str(self.display)
                 print(strline3)
-                if self.display == False:
+                if (self.display == False):
+                     
                     self.countingFailure = self.countingFailure + 1
                 else :
                     self.countingFailure = 0
+                    
+                if len(strline3)>5:
+                    # quando si resetta l'esp la str è di lunghezza variabile, spesso >5
+                    self.countingFailure = self.countingFailure + 1
+                
             else:
                 print("chitammuo")
             
@@ -299,6 +313,9 @@ class FichiMachine(Machine,threading.Thread):
                 print(strline5)
             else:
                 print("chitastramuo")
+                #self.trigger("RESET_BOARD2")
+                
+                
             
             f = open(self.pathlogGh , "a+")
             
@@ -319,6 +336,8 @@ class FichiMachine(Machine,threading.Thread):
             self.ser.baudrate = 115200
             time.sleep(1)
             print("Serial opened")
+            self.Rstboard()
+            #self.Rstboard2()
             self.to_Idle()
         except:
             self.to_Error()
@@ -338,7 +357,7 @@ class FichiMachine(Machine,threading.Thread):
             print("Error")
 
 
-    def Decision1(self) :
+    def _Decision1(self) :
         
         if self.display[3]=='g':
         
@@ -523,8 +542,9 @@ class FichiMachine(Machine,threading.Thread):
                 print("ERRORE IN SWITCH STATE COLD2")
                 self.OUTPUT_STATE=0
                 self.to_Error()
-      
-    def Decision2(self):
+    
+    
+    def Decision1(self):
         
         ERROR_STATE    = 0
         HEAT_STATE     = 1 
@@ -536,13 +556,13 @@ class FichiMachine(Machine,threading.Thread):
         TEMP_SET= float(temp["temp"])
         
         #TEMP_SET= 40
-        TEMP_SET_MIN= 30
-    
-        temperature=self.temperatureenv
+        TEMP_SET_MIN= TEMP_SET-20
+        
+        temperature=self.temperature
         
         if (0<=self.hour<HEAT_TIME_STOP) or (self.hour>HEAT_TIME_START) :
             
-            if temperature>TEMP_SET:     
+            if temperature>TEMP_SET_MIN:     
                 self.setHeat(self.getMode(),HEAT_STATE)
                 
             else:
@@ -558,7 +578,54 @@ class FichiMachine(Machine,threading.Thread):
             
             if temperature>TEMP_SET:
                 self.setColdAndFan(self.getMode(),COLD_FAN_STATE)
+            elif temperature< TEMP_SET_MIN:
+               self.setHeatAndFan(self.getMode(),HEAT_FAN_STATE)
             else:
+                self.setCold(self.getMode(),COLD_STATE)
+    
+    
+    
+    def Decision2(self):
+        
+        ERROR_STATE    = 0
+        HEAT_STATE     = 1 
+        HEAT_FAN_STATE = 2
+        COLD_STATE     = 3
+        COLD_FAN_STATE = 4
+        
+        temp= ConfigSectionMap("Control")
+        TEMP_SET= float(temp["temp"])
+        
+        #TEMP_SET= 40
+        #TEMP_SET_MIN= 40
+        TEMP_SET_MIN= TEMP_SET-10
+        
+        temperature=self.temperatureenv
+        
+        if (0<=self.hour<HEAT_TIME_STOP) or (self.hour>HEAT_TIME_START) :
+            
+            if temperature>TEMP_SET_MIN:     
+                self.setHeat(self.getMode(),HEAT_STATE)
+                
+            else:
+                self.setHeatAndFan(self.getMode(),HEAT_FAN_STATE)
+                
+                
+        elif (HEAT_TIME_STOP<=self.hour<COLDFAN_TIME_START) :
+            
+            if temperature>TEMP_SET_MIN:
+                self.setCold(self.getMode(),COLD_STATE)
+                            
+        elif (COLDFAN_TIME_START<=self.hour<=HEAT_TIME_START):
+            
+            if temperature>TEMP_SET:
+                self.setColdAndFan(self.getMode(),COLD_FAN_STATE)
+                
+            elif temperature< TEMP_SET_MIN:
+               self.setHeatAndFan(self.getMode(),HEAT_FAN_STATE)
+               
+            else:
+                
                 self.setCold(self.getMode(),COLD_STATE)
                 
     ############MANUALE###########################
@@ -725,6 +792,7 @@ class FichiMachine(Machine,threading.Thread):
             if self.mode == 'a':
                 #DECISIONE STATO
                 if self.display != False:
+ 
                     if (self.display == " e3g") or (self.display == " e3r") :
                         self.trigger("ERROR")
                     elif self.display == "OFF":
@@ -732,8 +800,10 @@ class FichiMachine(Machine,threading.Thread):
                     elif len(self.display)>3:
                         if self.disableDecision2:
                             self.trigger("DECISION_TIME")
+                            print("decision1")
                         else:
                             self.trigger("DECISION_FUSION")
+                            print("decision2")
                 try:
                     item = self.qs["toFSM"].get(block=False)
                     self.trigger(item)  
