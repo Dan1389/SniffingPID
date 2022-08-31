@@ -1,0 +1,3 @@
+https://raspberrypi.stackexchange.com/questions/122429/raspberry-pi-4-wont-pair-to-bluetooth-devices
+pip install pybluez
+sudo apt install bluetooth bluez libbluetooth-dev
